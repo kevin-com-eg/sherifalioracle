@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MathPro | الأستاذ شريف علي</title>
+    <meta name="theme-color" content="#f8fafc">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+
+<style>
+/* ... (ضع هنا نفس أكواد الـ CSS الخاصة بك بدون أي تغيير، لقد تركتها لتقليل حجم الكود هنا) ... */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+:root { --bg: #f8fafc; --bg2: #ffffff; --card: rgba(255, 255, 255, 0.9); --border: rgba(0, 0, 0, 0.08); --g1: #00b578; --g2: #008f5e; --text: #0f172a; --text2: #334155; --muted:#64748b; --mono: 'DM Mono', monospace; --sans: 'Tajawal', sans-serif;}
+body { font-family: var(--sans); background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden;}
+/* أضف باقي تنسيقاتك الخاصة بالـ Navbar، Hero، والـ Card هنا */
+.hidden { display: none !important; }
+.cta-btn { width:100%; background:linear-gradient(135deg,var(--g1) 0%,var(--g2) 100%); color:#ffffff; border:none; padding:14px; border-radius:12px; font-family:var(--sans); font-size:1rem; font-weight:900; cursor:pointer; margin-top:8px; }
+.inp { width:100%; background:rgba(0,0,0,.02); border:1px solid rgba(0,0,0,.1); padding:12px 14px; border-radius:10px; margin-bottom: 10px; font-family:var(--sans); }
+.tabs { display:flex; gap:4px; margin-bottom:20px; }
+.tab { flex:1; padding:10px; border:none; border-radius:9px; font-weight:700; cursor:pointer; color:var(--muted); background:none;}
+.tab.on { background:linear-gradient(135deg,var(--g1) 0%,var(--g2) 100%); color:#ffffff; }
+.card-col { max-width: 450px; margin: 50px auto; background: var(--card); padding: 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); border: 1px solid var(--border); }
+</style>
+</head>
+<body>
+
+<div class="page">
+    <div class="card-col">
+        <div class="auth-card" id="authCard">
+            <h2 style="font-size: 1.5rem; font-weight: bold; margin-bottom: 5px;">مرحباً بك 👋</h2>
+            <p style="color: var(--muted); margin-bottom: 20px; font-size: 0.9rem;">سجّل دخولك أو أنشئ حساباً جديداً</p>
+
+            <div class="tabs">
+                <button class="tab on" id="loginTab">دخول</button>
+                <button class="tab" id="signupTab">حساب جديد</button>
+            </div>
+
+            <div id="extraFields" class="hidden">
+                <input id="userName" class="inp" placeholder="الاسم الرباعي كاملاً...">
+                <select id="userGrade" class="inp">
+                    <option value="" disabled selected>اختر الصف الدراسي...</option>
+                    <option value="1">الصف الأول الثانوي</option>
+                    <option value="2">الصف الثاني الثانوي</option>
+                    <option value="3">الصف الثالث الثانوي</option>
+                </select>
+                <input id="userPhone" class="inp" placeholder="رقم الطالب (01xxxxxxxxx)">
+                <input id="parentPhone" class="inp" placeholder="رقم ولي الأمر (01xxxxxxxxx)">
+            </div>
+
+            <input id="email" type="email" class="inp" placeholder="البريد الإلكتروني">
+            <input id="password" type="password" class="inp" placeholder="كلمة المرور">
+
+            <button class="cta-btn" id="actionBtn">دخول ←</button>
+            <p id="msgBox" style="color: red; font-size: 0.85rem; margin-top: 10px; text-align: center;"></p>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 1. إعدادات السيرفر الخاص بك (بديل Supabase)
+    const API_BASE_URL = "http://localhost:3000/api";
+    
+    // دالة إنشاء معرّف للجهاز لضمان الدخول من جهازين فقط
+    function getLocalDeviceId() {
+        let did = localStorage.getItem('mp_device_id');
+        if (!did) {
+            did = 'dev_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
+            localStorage.setItem('mp_device_id', did);
+        }
+        return did;
+    }
+
+    // 2. التحكم في التبويبات (Tabs)
+    let mode = "login";
+    const lTab = document.getElementById("loginTab");
+    const sTab = document.getElementById("signupTab");
+    const extra = document.getElementById("extraFields");
+    const btn = document.getElementById("actionBtn");
+    const msgBox = document.getElementById("msgBox");
+
+    sTab.onclick = () => { 
+        mode = "signup"; extra.classList.remove("hidden");
+        btn.textContent = "إنشاء حساب جديد ←"; sTab.classList.add("on"); lTab.classList.remove("on"); 
+        msgBox.innerText = "";
+    };
+    
+    lTab.onclick = () => { 
+        mode = "login"; extra.classList.add("hidden"); 
+        btn.textContent = "دخول ←"; lTab.classList.add("on"); sTab.classList.remove("on");
+        msgBox.innerText = "";
+    };
+
+    // 3. إرسال البيانات للسيرفر (Oracle + Node.js)
+    btn.onclick = async () => {
+        const e = document.getElementById("email").value.trim();
+        const p = document.getElementById("password").value.trim();
+        const deviceId = getLocalDeviceId();
+        msgBox.innerText = "";
+
+        if (!e || !p) return msgBox.innerText = "من فضلك أدخل البريد وكلمة المرور!";
+
+        try {
+            if (mode === "signup") {
+                const n = document.getElementById("userName").value.trim();
+                const g = document.getElementById("userGrade").value;
+                const ph = document.getElementById("userPhone").value.trim();
+                const pp = document.getElementById("parentPhone").value.trim();
+
+                if(!n || !g || !ph || !pp) return msgBox.innerText = "من فضلك أكمل جميع بيانات التسجيل!";
+
+                btn.textContent = "جاري الإنشاء...";
+                
+                // طلب إنشاء حساب من السيرفر
+                const res = await fetch(`${API_BASE_URL}/auth/signup`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: n, email: e, password: p, grade: g, phone: ph, parentphone: pp, deviceId: deviceId })
+                });
+                
+                const data = await res.json();
+                if (data.success) {
+                    localStorage.setItem('mp_user', JSON.stringify(data.user));
+                    window.location.href = "dashboard.html";
+                } else {
+                    msgBox.innerText = data.message || "حدث خطأ أثناء التسجيل.";
+                }
+
+            } else {
+                btn.textContent = "جاري الدخول...";
+                
+                // طلب تسجيل الدخول من السيرفر
+                const res = await fetch(`${API_BASE_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: e, password: p, deviceId: deviceId })
+                });
+                
+                const data = await res.json();
+                if (data.success) {
+                    localStorage.setItem('mp_user', JSON.stringify(data.user));
+                    window.location.href = data.user.role === 'admin' ? "teacher-dashboard.html" : "dashboard.html";
+                } else {
+                    msgBox.innerText = data.message || "البريد الإلكتروني أو كلمة المرور غير صحيحة.";
+                }
+            }
+        } catch(err) {
+            msgBox.innerText = "خطأ في الاتصال بالسيرفر. تأكد أن السيرفر يعمل.";
+        } finally {
+            btn.textContent = mode === "login" ? "دخول ←" : "إنشاء حساب جديد ←";
+        }
+    };
+</script>
+</body>
+</html>
