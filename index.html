@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>MathPro</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial;
+      background: #f5f5f5;
+    }
+
+    /* Navbar */
+    .navbar {
+      background: #2c3e50;
+      color: white;
+      padding: 15px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .navbar h2 {
+      margin: 0;
+    }
+
+    /* Hero */
+    .hero {
+      text-align: center;
+      padding: 50px;
+      background: #3498db;
+      color: white;
+    }
+
+    /* Courses */
+    .courses {
+      padding: 20px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+
+    .card {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+
+    .card h3 {
+      margin: 0 0 10px;
+    }
+
+    button {
+      background: #3498db;
+      color: white;
+      border: none;
+      padding: 10px;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+
+  </style>
+</head>
+
+<body>
+
+  <!-- Navbar -->
+  <div class="navbar">
+    <h2>MathPro</h2>
+    <div>Login | Register</div>
+  </div>
+
+  <!-- Hero -->
+  <div class="hero">
+    <h1>Welcome to MathPro</h1>
+    <p>Learn Math Easily 🚀</p>
+  </div>
+
+  <!-- Courses -->
+  <div class="courses">
+
+    <div class="card">
+      <h3>Algebra</h3>
+      <p>Learn basic algebra</p>
+      <button>Start</button>
+    </div>
+
+    <div class="card">
+      <h3>Geometry</h3>
+      <p>Understand shapes</p>
+      <button>Start</button>
+    </div>
+
+    <div class="card">
+      <h3>Calculus</h3>
+      <p>Advanced math</p>
+      <button>Start</button>
+    </div>
+
+  </div>
+
+</body>
+</html>
