@@ -1,103 +1,218 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <title>MathPro</title>
-  <style>
-    body {
-      margin: 0;
-      font-family: Arial;
-      background: #f5f5f5;
-    }
+<meta charset="UTF-8">
+<title>KevinHub</title>
 
-    /* Navbar */
-    .navbar {
-      background: #2c3e50;
-      color: white;
-      padding: 15px;
-      display: flex;
-      justify-content: space-between;
-    }
+<style>
+body {
+    margin: 0;
+    font-family: Arial;
+    background: #f5f7fa;
+}
 
-    .navbar h2 {
-      margin: 0;
-    }
+/* الهيدر */
+header {
+    background: #0d47a1;
+    color: white;
+    padding: 15px;
+    text-align: center;
+}
 
-    /* Hero */
-    .hero {
-      text-align: center;
-      padding: 50px;
-      background: #3498db;
-      color: white;
-    }
+/* الناف بار */
+nav {
+    display: flex;
+    justify-content: center;
+    background: #1565c0;
+}
 
-    /* Courses */
-    .courses {
-      padding: 20px;
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 20px;
-    }
+nav a {
+    color: white;
+    padding: 10px 20px;
+    text-decoration: none;
+}
 
-    .card {
-      background: white;
-      padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-    }
+nav a:hover {
+    background: #0b3c91;
+}
 
-    .card h3 {
-      margin: 0 0 10px;
-    }
+/* الهيرو */
+.hero {
+    text-align: center;
+    padding: 60px 20px;
+    background: white;
+}
 
-    button {
-      background: #3498db;
-      color: white;
-      border: none;
-      padding: 10px;
-      cursor: pointer;
-      border-radius: 5px;
-    }
+.hero h1 {
+    font-size: 40px;
+}
 
-  </style>
+.hero p {
+    color: gray;
+}
+
+/* زر */
+.btn {
+    background: #ff9800;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    margin: 10px;
+    cursor: pointer;
+    border-radius: 5px;
+}
+
+/* لماذا نحن */
+.why {
+    padding: 40px;
+    text-align: center;
+}
+
+.why h2 {
+    margin-bottom: 20px;
+}
+
+.features {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px,1fr));
+    gap: 20px;
+}
+
+.feature {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+}
+
+/* الكورسات */
+.courses {
+    padding: 40px;
+}
+
+.course-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px,1fr));
+    gap: 20px;
+}
+
+.course {
+    background: white;
+    padding: 15px;
+    border-radius: 10px;
+    text-align: center;
+}
+
+/* تواصل */
+.contact {
+    padding: 40px;
+    background: white;
+    text-align: center;
+}
+
+input, textarea {
+    width: 80%;
+    padding: 10px;
+    margin: 10px;
+}
+
+/* الفوتر */
+footer {
+    background: #0d47a1;
+    color: white;
+    text-align: center;
+    padding: 15px;
+}
+</style>
+
 </head>
 
 <body>
 
-  <!-- Navbar -->
-  <div class="navbar">
-    <h2>MathPro</h2>
-    <div>Login | Register</div>
-  </div>
+<header>
+    <h1>KevinHub</h1>
+    <p>منصة تعليمية للثانوية العامة</p>
+</header>
 
-  <!-- Hero -->
-  <div class="hero">
-    <h1>Welcome to MathPro</h1>
-    <p>Learn Math Easily 🚀</p>
-  </div>
+<nav>
+    <a href="#">الرئيسية</a>
+    <a href="#">الكورسات</a>
+    <a href="#">لماذا نحن</a>
+    <a href="#">تواصل</a>
+</nav>
 
-  <!-- Courses -->
-  <div class="courses">
+<section class="hero">
+    <h1>ابدأ رحلتك التعليمية الآن</h1>
+    <p>أفضل شرح للثانوية العامة مع مدرسين محترفين</p>
+    <button class="btn">ابدأ الآن</button>
+</section>
 
-    <div class="card">
-      <h3>Algebra</h3>
-      <p>Learn basic algebra</p>
-      <button>Start</button>
+<section class="why">
+    <h2>لماذا KevinHub؟</h2>
+
+    <div class="features">
+
+        <div class="feature">
+            <h3>شرح مبسط</h3>
+            <p>نقدم شرح سهل وواضح لكل الدروس</p>
+        </div>
+
+        <div class="feature">
+            <h3>اختبارات تفاعلية</h3>
+            <p>امتحانات تساعدك تقيس مستواك</p>
+        </div>
+
+        <div class="feature">
+            <h3>متابعة مستمرة</h3>
+            <p>نساعدك خطوة بخطوة لحد النجاح</p>
+        </div>
+
+        <div class="feature">
+            <h3>فيديوهات عالية الجودة</h3>
+            <p>شرح احترافي بجودة ممتازة</p>
+        </div>
+
     </div>
+</section>
 
-    <div class="card">
-      <h3>Geometry</h3>
-      <p>Understand shapes</p>
-      <button>Start</button>
+<section class="courses">
+    <h2 style="text-align:center;">الكورسات</h2>
+
+    <div class="course-list">
+
+        <div class="course">
+            <h3>رياضيات</h3>
+            <p>شرح كامل + مراجعات</p>
+            <button class="btn">اشترك</button>
+        </div>
+
+        <div class="course">
+            <h3>فيزياء</h3>
+            <p>شرح + مسائل</p>
+            <button class="btn">اشترك</button>
+        </div>
+
+        <div class="course">
+            <h3>كيمياء</h3>
+            <p>محتوى شامل</p>
+            <button class="btn">اشترك</button>
+        </div>
+
     </div>
+</section>
 
-    <div class="card">
-      <h3>Calculus</h3>
-      <p>Advanced math</p>
-      <button>Start</button>
-    </div>
+<section class="contact">
+    <h2>تواصل معنا</h2>
 
-  </div>
+    <input type="text" placeholder="اسمك"><br>
+    <input type="email" placeholder="البريد الإلكتروني"><br>
+    <textarea placeholder="رسالتك"></textarea><br>
+
+    <button class="btn">إرسال</button>
+</section>
+
+<footer>
+    <p>© KevinHub 2026</p>
+</footer>
 
 </body>
 </html>
