@@ -552,7 +552,7 @@ async function deleteSubject(id,name){
 
 async function renderTeachers(){
   const c=document.getElementById('mainContent');
-  const{data}=await sb.from('teachers').select('id,bio,created_at,profiles(full_name,phone)').order('created_at',{ascending:false});
+  const{data}=await sb.from('teachers').select('id,bio,created_at,profiles(full_name,phone,email)').order('created_at',{ascending:false});
   c.innerHTML=`
   <div class="panel">
     <div class="panel-header"><span class="panel-title">إضافة مدرس جديد</span></div>
@@ -569,15 +569,16 @@ async function renderTeachers(){
   <div class="panel">
     <div class="panel-header"><span class="panel-title">كل المدرسين</span></div>
     <div class="tbl-wrap"><table>
-      <thead><tr><th>الاسم</th><th>الموبايل</th><th>نبذة</th><th>التاريخ</th><th>إجراء</th></tr></thead>
+      <thead><tr><th>الاسم</th><th>البريد</th><th>الموبايل</th><th>نبذة</th><th>التاريخ</th><th>إجراء</th></tr></thead>
       <tbody>${(data||[]).length?data.map(t=>`
         <tr>
           <td><strong>${t.profiles?.full_name||'—'}</strong></td>
+          <td class="td-mono" style="direction:ltr">${t.profiles?.email||'—'}</td>
           <td class="td-mono">${t.profiles?.phone||'—'}</td>
           <td style="color:var(--muted);font-size:.82rem">${t.bio||'—'}</td>
           <td class="td-mono">${new Date(t.created_at).toLocaleDateString('ar-EG')}</td>
           <td><button class="btn btn-danger btn-sm" onclick="deleteTeacher('${t.id}','${t.profiles?.full_name||t.id}')">حذف</button></td>
-        </tr>`).join(''):`<tr><td colspan="5"><div class="empty"><div class="empty-icon">👨‍🏫</div><div class="empty-txt">لا يوجد مدرسين بعد</div></div></td></tr>`}
+        </tr>`).join(''):`<tr><td colspan="6"><div class="empty"><div class="empty-icon">👨‍🏫</div><div class="empty-txt">لا يوجد مدرسين بعد</div></div></td></tr>`}
       </tbody>
     </table></div>
   </div>`;
@@ -596,7 +597,7 @@ async function addTeacher(){
   if(error){toast('error','خطأ',error.message);btn.textContent='إضافة المدرس';btn.disabled=false;return;}
   const uid=data.user?.id;
   if(!uid){toast('error','خطأ','مش قادر أنشئ الحساب');btn.textContent='إضافة المدرس';btn.disabled=false;return;}
-  const{error:pe}=await sb.from('profiles').insert({id:uid,full_name:name,role:'teacher'});
+  const{error:pe}=await sb.from('profiles').insert({id:uid,full_name:name,role:'teacher',email:email});
   const{error:te}=await sb.from('teachers').insert({id:uid,bio:bio||null});
   btn.textContent='إضافة المدرس';btn.disabled=false;
   if(pe||te)return toast('error','خطأ في الداتابيز',(pe||te).message);
