@@ -200,6 +200,58 @@ tr:hover td{background:rgba(255,255,255,.025)}
   </div>
 </div>
 
+<!-- Codes Modal -->
+<div class="modal-overlay" id="codesModal">
+  <div class="modal-card" style="max-width:640px">
+    <div class="modal-title">🔑 أكواد الحصة</div>
+    <div class="modal-sub" id="codesModalSub">—</div>
+
+    <!-- Stats bar -->
+    <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+      <div style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:var(--r-sm);padding:10px 14px;text-align:center">
+        <div style="font-size:1.4rem;font-weight:800" id="codes-total">—</div>
+        <div style="font-size:.7rem;color:var(--muted);font-family:var(--mono);text-transform:uppercase">إجمالي</div>
+      </div>
+      <div style="flex:1;background:var(--accentSoft);border:1px solid var(--accent);border-radius:var(--r-sm);padding:10px 14px;text-align:center">
+        <div style="font-size:1.4rem;font-weight:800;color:var(--accentBright)" id="codes-used">—</div>
+        <div style="font-size:.7rem;color:var(--muted);font-family:var(--mono);text-transform:uppercase">مستخدم</div>
+      </div>
+      <div style="flex:1;background:var(--goldSoft);border:1px solid rgba(196,154,82,.3);border-radius:var(--r-sm);padding:10px 14px;text-align:center">
+        <div style="font-size:1.4rem;font-weight:800;color:var(--gold)" id="codes-free">—</div>
+        <div style="font-size:.7rem;color:var(--muted);font-family:var(--mono);text-transform:uppercase">متاح</div>
+      </div>
+    </div>
+
+    <!-- Generate -->
+    <div style="display:flex;gap:8px;margin-bottom:16px;align-items:center">
+      <select class="inp hv" id="gen-count" style="width:140px">
+        <option value="10">10 أكواد</option>
+        <option value="25">25 كود</option>
+        <option value="50" selected>50 كود</option>
+        <option value="100">100 كود</option>
+      </select>
+      <button class="btn btn-primary" id="gen-btn" onclick="generateCodes()">⚡ توليد أكواد</button>
+      <button class="btn btn-ghost btn-sm" onclick="copyUnusedCodes()">📋 نسخ المتاحة</button>
+    </div>
+
+    <!-- Tabs -->
+    <div style="display:flex;gap:4px;margin-bottom:12px;background:rgba(255,255,255,.04);padding:3px;border-radius:10px">
+      <button class="type-tab active" id="tab-all"      onclick="filterCodes('all')">الكل</button>
+      <button class="type-tab"        id="tab-unused"   onclick="filterCodes('unused')">✅ متاح</button>
+      <button class="type-tab"        id="tab-used"     onclick="filterCodes('used')">🔴 مستخدم</button>
+    </div>
+
+    <!-- Codes list -->
+    <div id="codes-list" style="max-height:320px;overflow-y:auto;display:flex;flex-direction:column;gap:6px">
+      <div class="empty"><div class="loader"></div></div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('codesModal')">إغلاق</button>
+    </div>
+  </div>
+</div>
+
 <!-- Add Lesson Modal -->
 <div class="modal-overlay" id="lessonModal">
   <div class="modal-card" style="max-width:520px">
@@ -834,6 +886,7 @@ async function renderMyLessons(){
           <td class="td-mono">${l.scheduled_at?new Date(l.scheduled_at).toLocaleString('ar-EG'):'—'}</td>
           <td style="display:flex;gap:6px;flex-wrap:wrap">
             <button class="btn btn-gold btn-sm" onclick="openContentModal('${l.id}','${l.title}')">📋 محتوى</button>
+            <button class="btn btn-ghost btn-sm" onclick="openCodesModal('${l.id}','${l.title}')">🔑 أكواد</button>
             <button class="btn btn-danger btn-sm" onclick="deleteLesson('${l.id}','${l.title}')">حذف</button>
           </td>
         </tr>`).join(''):`<tr><td colspan="6"><div class="empty"><div class="empty-icon">🎬</div><div class="empty-txt">لا توجد حصص بعد — ابدأ بإضافة حصة</div></div></td></tr>`}
@@ -947,6 +1000,114 @@ async function deleteContent(contentId,lessonId){
   if(error)return toast('error','خطأ',error.message);
   toast('success','تم الحذف!');
   loadExistingContent(lessonId);
+}
+
+// ── Codes System ──────────────────────────────────────────────────────────────
+let _activeCodesLessonId = null;
+let _allCodes = [];
+let _codesFilter = 'all';
+
+async function openCodesModal(lessonId, lessonTitle){
+  _activeCodesLessonId = lessonId;
+  document.getElementById('codesModalSub').textContent = `حصة: ${lessonTitle}`;
+  document.getElementById('codesModal').classList.add('show');
+  await loadCodes();
+}
+
+async function loadCodes(){
+  const list = document.getElementById('codes-list');
+  list.innerHTML = '<div class="empty"><div class="loader"></div></div>';
+
+  const { data } = await sb.from('lesson_codes')
+    .select('id, code, used_at, used_by, created_at, students(profiles(full_name, phone))')
+    .eq('lesson_id', _activeCodesLessonId)
+    .order('created_at', { ascending: false });
+
+  _allCodes = data || [];
+  updateCodesStats();
+  renderCodesList();
+}
+
+function updateCodesStats(){
+  const total  = _allCodes.length;
+  const used   = _allCodes.filter(c => c.used_by).length;
+  const free   = total - used;
+  document.getElementById('codes-total').textContent = total;
+  document.getElementById('codes-used').textContent  = used;
+  document.getElementById('codes-free').textContent  = free;
+}
+
+function filterCodes(filter){
+  _codesFilter = filter;
+  document.querySelectorAll('#codesModal .type-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(`tab-${filter}`).classList.add('active');
+  renderCodesList();
+}
+
+function renderCodesList(){
+  const list = document.getElementById('codes-list');
+  let filtered = _allCodes;
+  if(_codesFilter === 'used')   filtered = _allCodes.filter(c =>  c.used_by);
+  if(_codesFilter === 'unused') filtered = _allCodes.filter(c => !c.used_by);
+
+  if(!filtered.length){
+    list.innerHTML = `<div class="empty"><div class="empty-icon">${_codesFilter==='used'?'🔴':'✅'}</div><div class="empty-txt">لا توجد أكواد</div></div>`;
+    return;
+  }
+
+  list.innerHTML = filtered.map(c => `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--bg);border:1px solid ${c.used_by?'rgba(224,82,82,.2)':'var(--border)'};border-radius:var(--r-sm);gap:10px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:.85rem">${c.used_by ? '🔴' : '✅'}</span>
+        <span style="font-family:var(--mono);font-size:.9rem;font-weight:700;color:${c.used_by?'var(--muted)':'var(--accentBright)'};letter-spacing:.08em">${c.code}</span>
+      </div>
+      <div style="text-align:left;flex:1">
+        ${c.used_by
+          ? `<div style="font-size:.82rem;font-weight:600">${c.students?.profiles?.full_name || 'طالب'}</div>
+             <div style="font-size:.7rem;color:var(--muted);font-family:var(--mono)">${c.used_at ? new Date(c.used_at).toLocaleString('ar-EG') : '—'}</div>`
+          : `<div style="font-size:.72rem;color:var(--muted);font-family:var(--mono)">${new Date(c.created_at).toLocaleDateString('ar-EG')}</div>`
+        }
+      </div>
+      <button onclick="navigator.clipboard.writeText('${c.code}');toast('info','تم النسخ','${c.code}')" class="btn btn-ghost btn-sm" style="flex-shrink:0">نسخ</button>
+    </div>`).join('');
+}
+
+function generateCodeStr(){
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = 'KW-';
+  for(let i=0;i<6;i++) code += chars[Math.floor(Math.random()*chars.length)];
+  return code;
+}
+
+async function generateCodes(){
+  const count = parseInt(document.getElementById('gen-count').value);
+  const btn = document.getElementById('gen-btn');
+  btn.innerHTML = '<span class="loader"></span>'; btn.disabled = true;
+
+  // get existing codes to avoid duplicates
+  const { data: existing } = await sb.from('lesson_codes').select('code');
+  const existingSet = new Set((existing||[]).map(c=>c.code));
+
+  const newCodes = [];
+  let attempts = 0;
+  while(newCodes.length < count && attempts < count * 10){
+    attempts++;
+    const code = generateCodeStr();
+    if(!existingSet.has(code)){ existingSet.add(code); newCodes.push({ lesson_id: _activeCodesLessonId, code }); }
+  }
+
+  const { error } = await sb.from('lesson_codes').insert(newCodes);
+  btn.innerHTML = '⚡ توليد أكواد'; btn.disabled = false;
+  if(error) return toast('error','خطأ', error.message);
+  toast('success', `تم توليد ${newCodes.length} كود!`);
+  await loadCodes();
+}
+
+function copyUnusedCodes(){
+  const unused = _allCodes.filter(c => !c.used_by).map(c => c.code).join('\n');
+  if(!unused) return toast('warning','لا توجد أكواد متاحة');
+  navigator.clipboard.writeText(unused);
+  toast('success','تم النسخ!', `${_allCodes.filter(c=>!c.used_by).length} كود اتنسخوا`);
 }
 
 // ── Enter key ─────────────────────────────────────────────────────────────────
