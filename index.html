@@ -1,639 +1,763 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="ar" dir="rtl" data-theme="dark" data-lang="ar">
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>kalawy — Dashboard</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<title>kalawy — Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
-:root{
-  --bg:#0f1712;--bg2:#161f19;--sidebar:#111a14;--card:#1a2420;--card2:#1f2b26;
-  --border:rgba(255,255,255,.07);--border2:rgba(255,255,255,.12);
-  --text:#f0ede8;--muted:#8a9990;--muted2:#5a6b64;
-  --accent:#3a7d5c;--accent2:#4a9b72;--accentBright:#5ec98a;--accentSoft:rgba(58,125,92,.15);
-  --gold:#c49a52;--goldSoft:rgba(196,154,82,.12);
-  --danger:#e05252;--dangerSoft:rgba(224,82,82,.12);
-  --blue:#4a7fc1;--purple:#7c5cbf;
-  --shadow:0 8px 32px rgba(0,0,0,.4);--shadow2:0 4px 16px rgba(0,0,0,.3);
-  --font:'Outfit',sans-serif;--mono:'JetBrains Mono',monospace;
-  --r:14px;--r-sm:10px;--sidebar-w:240px;
+:root {
+  --accent:#00c896;--accent2:#0099ff;--accent-glow:rgba(0,200,150,.22);
+  --gold:#f5c76e;--danger:#ff6b6b;--warning:#f59e0b;
+  --r:14px;--r-sm:10px;--r-lg:22px;--r-xl:28px;
+  --sidebar-w:230px;--nav-h:64px;
+}
+[data-theme="dark"] {
+  --bg:#06100d;--bg2:#091510;--bg3:#0d1a12;
+  --glass-bg:rgba(255,255,255,.05);--glass-bg-h:rgba(255,255,255,.09);
+  --glass-border:rgba(255,255,255,.09);--glass-border-h:rgba(255,255,255,.18);
+  --glass-shine:rgba(255,255,255,.05);--glass-shadow:0 8px 32px rgba(0,0,0,.5);
+  --text:#eef4ee;--text2:#90b09a;--text3:#506858;
+  --orb1:rgba(0,200,150,.1);--orb2:rgba(0,153,255,.08);--orb3:rgba(120,0,255,.06);
+}
+[data-theme="light"] {
+  --bg:#eaf5ef;--bg2:#ddeee5;--bg3:#d0e8da;
+  --glass-bg:rgba(255,255,255,.55);--glass-bg-h:rgba(255,255,255,.75);
+  --glass-border:rgba(255,255,255,.8);--glass-border-h:rgba(255,255,255,.95);
+  --glass-shine:rgba(255,255,255,.65);--glass-shadow:0 8px 32px rgba(0,60,30,.1);
+  --text:#0a1a10;--text2:#2a5a38;--text3:#6a9a78;
+  --orb1:rgba(0,200,150,.15);--orb2:rgba(0,153,255,.12);--orb3:rgba(120,0,255,.08);
 }
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;display:flex;overflow-x:hidden}
-a{text-decoration:none;color:inherit}
+html{scroll-behavior:smooth}
+body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;overflow-x:hidden;transition:background .3s,color .3s}
+[data-lang="en"] body{font-family:'Inter',sans-serif}
+[data-lang="en"]{direction:ltr}
+[data-lang="ar"]{direction:rtl}
 button,input,select,textarea{font:inherit}
+a{text-decoration:none;color:inherit}
 .hidden{display:none!important}
 
-/* Sidebar */
-.sidebar{width:var(--sidebar-w);flex-shrink:0;background:var(--sidebar);border-left:1px solid var(--border);display:flex;flex-direction:column;position:fixed;right:0;top:0;bottom:0;z-index:50}
-.sidebar-logo{padding:24px 20px 20px;border-bottom:1px solid var(--border)}
+/* BG */
+.bg-canvas{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.orb{position:absolute;border-radius:50%;filter:blur(80px);animation:drift 14s ease-in-out infinite}
+.o1{width:500px;height:500px;background:var(--orb1);top:-120px;right:-80px}
+.o2{width:400px;height:400px;background:var(--orb2);bottom:-80px;left:-80px;animation-delay:-5s}
+.o3{width:300px;height:300px;background:var(--orb3);top:50%;left:45%;animation-delay:-9s}
+@keyframes drift{0%,100%{transform:translate(0,0)}40%{transform:translate(25px,-35px)}70%{transform:translate(-20px,25px)}}
+
+/* GLASS */
+.glass{background:var(--glass-bg);backdrop-filter:blur(24px) saturate(180%);-webkit-backdrop-filter:blur(24px) saturate(180%);border:1px solid var(--glass-border);box-shadow:var(--glass-shadow);position:relative;overflow:hidden}
+.glass::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,var(--glass-shine) 0%,transparent 55%);pointer-events:none;border-radius:inherit}
+.glass-hover:hover{background:var(--glass-bg-h);border-color:var(--glass-border-h)}
+
+/* SIDEBAR */
+.sidebar{width:var(--sidebar-w);flex-shrink:0;position:fixed;right:0;top:0;bottom:0;z-index:100;display:flex;flex-direction:column;transition:transform .3s}
+[data-lang="en"] .sidebar{right:auto;left:0}
+.sidebar-logo{padding:20px 18px;border-bottom:1px solid var(--glass-border)}
 .logo-row{display:flex;align-items:center;gap:10px}
-.logo-mark{width:38px;height:38px;border-radius:12px;background:linear-gradient(135deg,var(--accent),#234a35);display:grid;place-items:center;font-weight:800;font-size:.95rem;color:#fff}
-.logo-name{font-weight:800;font-size:1.1rem;letter-spacing:-.03em}
+.logo-mark{width:38px;height:38px;border-radius:12px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:grid;place-items:center;font-weight:900;font-size:.9rem;color:#fff;box-shadow:0 4px 14px var(--accent-glow);flex-shrink:0}
+.logo-name{font-weight:900;font-size:1.05rem;letter-spacing:-.02em}
 .logo-name em{font-style:normal;color:var(--gold)}
-.role-badge{font-size:.65rem;font-family:var(--mono);letter-spacing:.1em;text-transform:uppercase;margin-top:2px;padding:2px 8px;border-radius:999px;display:inline-block}
-.role-badge.admin{color:var(--gold);background:var(--goldSoft)}
-.role-badge.teacher{color:var(--accentBright);background:var(--accentSoft)}
+.role-tag{font-size:.62rem;font-family:monospace;padding:2px 8px;border-radius:999px;margin-top:2px;display:inline-block}
+.tag-admin{background:rgba(245,199,110,.12);color:var(--gold);border:1px solid rgba(245,199,110,.25)}
+.tag-teacher{background:rgba(0,200,150,.1);color:var(--accent);border:1px solid rgba(0,200,150,.2)}
 
-.sidebar-nav{flex:1;padding:16px 12px;display:flex;flex-direction:column;gap:2px}
-.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--r-sm);cursor:pointer;color:var(--muted);font-weight:600;font-size:.9rem;transition:.15s;border:none;background:none;width:100%;text-align:right}
-.nav-item:hover{color:var(--text);background:rgba(255,255,255,.05)}
-.nav-item.active{color:var(--accentBright);background:var(--accentSoft)}
-.nav-icon{width:32px;height:32px;border-radius:8px;display:grid;place-items:center;font-size:1rem;background:rgba(255,255,255,.06);flex-shrink:0}
-.nav-item.active .nav-icon{background:var(--accentSoft)}
-.nav-sep{height:1px;background:var(--border);margin:8px 4px}
+.sidebar-nav{flex:1;padding:14px 10px;display:flex;flex-direction:column;gap:2px;overflow-y:auto}
+.nav-group-title{font-size:.62rem;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.12em;padding:10px 10px 4px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--r-sm);cursor:pointer;color:var(--text2);font-weight:600;font-size:.88rem;transition:.15s;border:none;background:none;width:100%;text-align:right}
+[data-lang="en"] .nav-item{text-align:left}
+.nav-item:hover{color:var(--text);background:var(--glass-bg)}
+.nav-item.active{color:var(--accent);background:rgba(0,200,150,.1);border:1px solid rgba(0,200,150,.15)}
+.nav-ico{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;font-size:.9rem;background:var(--glass-bg);flex-shrink:0}
+.nav-item.active .nav-ico{background:rgba(0,200,150,.15)}
+.nav-sep{height:1px;background:var(--glass-border);margin:6px 4px}
 
-.sidebar-footer{padding:16px 12px;border-top:1px solid var(--border)}
-.user-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--r-sm);background:rgba(255,255,255,.04)}
-.user-avatar{width:34px;height:34px;border-radius:50%;background:var(--accentSoft);display:grid;place-items:center;font-weight:700;font-size:.85rem;color:var(--accentBright);flex-shrink:0}
-.user-name{font-weight:600;font-size:.85rem}
-.user-role{font-size:.7rem;color:var(--muted);font-family:var(--mono)}
-.logout-btn{border:none;background:none;color:var(--danger);font-size:.8rem;font-weight:600;cursor:pointer;margin-top:8px;width:100%;padding:8px;border-radius:var(--r-sm);transition:.15s}
-.logout-btn:hover{background:var(--dangerSoft)}
+.sidebar-footer{padding:12px 10px;border-top:1px solid var(--glass-border)}
+.user-pill{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--r-sm);background:var(--glass-bg);border:1px solid var(--glass-border)}
+.user-av{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:grid;place-items:center;font-weight:800;font-size:.85rem;color:#fff;flex-shrink:0}
+.user-name{font-weight:700;font-size:.82rem}
+.user-role{font-size:.66rem;color:var(--text3)}
+.logout-btn{border:none;background:none;color:var(--danger);font-size:.8rem;font-weight:700;cursor:pointer;width:100%;padding:8px;border-radius:var(--r-sm);margin-top:6px;transition:.15s}
+.logout-btn:hover{background:rgba(255,107,107,.1)}
 
-/* Main */
-.main{margin-right:var(--sidebar-w);flex:1;display:flex;flex-direction:column;min-height:100vh}
-.topbar{padding:20px 28px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--bg2);position:sticky;top:0;z-index:40}
-.page-title{font-weight:800;font-size:1.3rem;letter-spacing:-.03em}
-.page-sub{font-size:.82rem;color:var(--muted);margin-top:2px}
-.content{padding:24px 28px;flex:1}
+/* MAIN */
+.main{margin-right:var(--sidebar-w);flex:1;display:flex;flex-direction:column;min-height:100vh;position:relative;z-index:1}
+[data-lang="en"] .main{margin-right:0;margin-left:var(--sidebar-w)}
+.topbar{height:var(--nav-h);padding:0 26px;border-bottom:1px solid var(--glass-border);display:flex;align-items:center;justify-content:space-between;background:rgba(6,16,13,.6);backdrop-filter:blur(20px);position:sticky;top:0;z-index:50}
+[data-theme="light"] .topbar{background:rgba(234,245,239,.7)}
+.topbar-left{display:flex;flex-direction:column}
+.page-title{font-weight:900;font-size:1.15rem;letter-spacing:-.02em}
+.page-sub{font-size:.76rem;color:var(--text3);margin-top:2px}
+.topbar-right{display:flex;align-items:center;gap:10px}
 
-/* Cards */
-.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px}
-.stats-grid.cols3{grid-template-columns:repeat(3,1fr)}
-.stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:20px;position:relative;overflow:hidden;transition:.2s}
-.stat-card:hover{border-color:var(--border2);transform:translateY(-2px)}
-.stat-card::before{content:'';position:absolute;top:-40px;left:-40px;width:100px;height:100px;border-radius:50%;opacity:.15}
-.s-green::before{background:var(--accent2)}.s-gold::before{background:var(--gold)}.s-blue::before{background:var(--blue)}.s-purple::before{background:var(--purple)}
-.stat-icon{font-size:1.4rem;margin-bottom:12px}
-.stat-num{font-weight:800;font-size:2rem;letter-spacing:-.04em;line-height:1}
-.stat-label{font-size:.75rem;color:var(--muted);font-family:var(--mono);text-transform:uppercase;letter-spacing:.1em;margin-top:6px}
+/* Toggle pill */
+.tpill{display:flex;align-items:center;gap:2px;background:var(--glass-bg);border:1px solid var(--glass-border);border-radius:999px;padding:3px;backdrop-filter:blur(10px)}
+.topt{padding:5px 11px;border-radius:999px;border:none;background:transparent;color:var(--text3);font-weight:700;font-size:.76rem;cursor:pointer;transition:.18s}
+.topt.on{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;box-shadow:0 2px 10px var(--accent-glow)}
 
-/* Panels */
-.section-page{display:none}.section-page.active{display:block}
-.panel{background:var(--card);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:20px}
-.panel-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
-.panel-title{font-weight:700;font-size:1rem}
+/* CONTENT */
+.content{padding:24px 26px;flex:1}
+.page-section{display:none}
+.page-section.active{display:block;animation:fadeUp .3s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+
+/* STATS */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}
+.stat-card{border-radius:var(--r-lg);padding:20px;cursor:default;transition:.2s}
+.stat-card:hover{transform:translateY(-3px)}
+.stat-ico{font-size:1.3rem;margin-bottom:10px}
+.stat-num{font-weight:900;font-size:1.9rem;letter-spacing:-.04em;line-height:1}
+.stat-lbl{font-size:.68rem;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-top:5px}
+
+/* PANEL */
+.panel{border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px}
+.panel-head{padding:16px 20px;border-bottom:1px solid var(--glass-border);display:flex;align-items:center;justify-content:space-between}
+.panel-title{font-weight:800;font-size:.95rem}
 .panel-body{padding:20px}
 
-/* Forms */
-.form-row{display:grid;gap:12px;margin-bottom:16px}
-.form-row.cols-2{grid-template-columns:1fr 1fr}
-.form-row.cols-3{grid-template-columns:1fr 1fr 1fr}
+/* FORM */
+.form-row{display:grid;gap:12px;margin-bottom:14px}
+.fr-2{grid-template-columns:1fr 1fr}
+.fr-3{grid-template-columns:1fr 1fr 1fr}
 .fw{display:flex;flex-direction:column;gap:6px}
-.flbl{font-size:.7rem;font-weight:700;color:var(--muted);font-family:var(--mono);text-transform:uppercase;letter-spacing:.1em}
-.inp{background:var(--bg);border:1px solid var(--border2);color:var(--text);padding:10px 14px;border-radius:var(--r-sm);outline:none;transition:.15s;width:100%}
-.inp:focus{border-color:var(--accent2);box-shadow:0 0 0 3px var(--accentSoft)}
-.inp::placeholder{color:var(--muted2)}
-select.inp{color:var(--muted)}
+.fl{font-size:.68rem;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.1em}
+.inp{background:var(--bg2);border:1px solid var(--glass-border);color:var(--text);padding:10px 14px;border-radius:var(--r-sm);outline:none;transition:.18s;width:100%}
+.inp:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow)}
+.inp::placeholder{color:var(--text3)}
+select.inp{color:var(--text3)}
 select.inp.hv{color:var(--text)}
-textarea.inp{resize:vertical;min-height:80px}
+textarea.inp{resize:vertical;min-height:72px}
 
-/* Buttons */
-.btn{border:none;border-radius:var(--r-sm);padding:10px 18px;font-weight:700;cursor:pointer;font-size:.88rem;transition:.15s;display:inline-flex;align-items:center;gap:6px}
-.btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;box-shadow:0 6px 16px rgba(58,125,92,.25)}
-.btn-primary:hover{opacity:.9;transform:translateY(-1px)}
-.btn-primary:disabled{opacity:.5;cursor:not-allowed;transform:none}
-.btn-danger{background:var(--dangerSoft);color:var(--danger);border:1px solid rgba(224,82,82,.2)}
-.btn-danger:hover{background:rgba(224,82,82,.22)}
-.btn-ghost{background:rgba(255,255,255,.06);color:var(--muted);border:1px solid var(--border)}
-.btn-ghost:hover{color:var(--text);background:rgba(255,255,255,.1)}
-.btn-gold{background:var(--goldSoft);color:var(--gold);border:1px solid rgba(196,154,82,.2)}
-.btn-gold:hover{background:rgba(196,154,82,.22)}
-.btn-sm{padding:6px 12px;font-size:.8rem}
+/* IMAGE UPLOAD */
+.img-upload{border:2px dashed var(--glass-border);border-radius:var(--r-sm);padding:20px;text-align:center;cursor:pointer;transition:.2s;position:relative}
+.img-upload:hover{border-color:var(--accent);background:rgba(0,200,150,.05)}
+.img-upload input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer}
+.img-upload-ico{font-size:1.8rem;margin-bottom:6px}
+.img-upload-txt{font-size:.8rem;color:var(--text3)}
+.img-preview{width:100%;max-height:140px;object-fit:cover;border-radius:var(--r-sm);display:block;margin-top:10px}
+.img-preview-circle{width:72px;height:72px;border-radius:50%;object-fit:cover;margin:8px auto 0;display:block;border:2px solid var(--glass-border)}
+.upload-progress{height:3px;background:var(--glass-border);border-radius:999px;margin-top:8px;overflow:hidden}
+.upload-bar{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:999px;width:0;transition:width .3s}
 
-/* Table */
+/* TABLE */
 .tbl-wrap{overflow-x:auto}
 table{width:100%;border-collapse:collapse}
-th{padding:10px 14px;text-align:right;font-size:.7rem;font-family:var(--mono);text-transform:uppercase;letter-spacing:.1em;color:var(--muted);border-bottom:1px solid var(--border);white-space:nowrap}
-td{padding:12px 14px;font-size:.88rem;border-bottom:1px solid var(--border);vertical-align:middle}
+th{padding:10px 14px;text-align:right;font-size:.68rem;font-family:monospace;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);border-bottom:1px solid var(--glass-border);white-space:nowrap}
+[data-lang="en"] th{text-align:left}
+td{padding:11px 14px;font-size:.86rem;border-bottom:1px solid var(--glass-border);vertical-align:middle}
 tr:last-child td{border-bottom:none}
-tr:hover td{background:rgba(255,255,255,.025)}
-.td-mono{font-family:var(--mono);font-size:.78rem;color:var(--muted)}
-.badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:999px;font-size:.72rem;font-weight:700;font-family:var(--mono)}
-.badge-green{background:rgba(94,201,138,.12);color:var(--accentBright)}
-.badge-gold{background:var(--goldSoft);color:var(--gold)}
-.badge-blue{background:rgba(74,127,193,.12);color:#7aabf0}
-.badge-red{background:var(--dangerSoft);color:var(--danger)}
-.badge-purple{background:rgba(124,92,191,.12);color:#a98af0}
+tr:hover td{background:rgba(255,255,255,.02)}
+.td-mono{font-family:monospace;font-size:.76rem;color:var(--text3)}
+.tbl-av{width:36px;height:36px;border-radius:50%;object-fit:cover;border:1px solid var(--glass-border)}
+.tbl-av-placeholder{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:grid;place-items:center;font-size:.85rem;font-weight:700;color:#fff}
+.tbl-thumb{width:48px;height:36px;border-radius:8px;object-fit:cover}
+.tbl-thumb-ph{width:48px;height:36px;border-radius:8px;background:var(--glass-bg);display:grid;place-items:center;font-size:1rem}
 
-/* Toast */
-#toast-container{position:fixed;top:18px;left:18px;z-index:9999;display:flex;flex-direction:column;gap:8px}
-.toast{display:flex;gap:10px;align-items:flex-start;background:var(--card2);border:1px solid var(--border2);border-radius:12px;padding:12px 14px;min-width:260px;max-width:320px;box-shadow:var(--shadow);animation:tin .25s ease}
-.toast.success{border-right:3px solid var(--accentBright)}.toast.error{border-right:3px solid var(--danger)}.toast.info{border-right:3px solid var(--blue)}.toast.warning{border-right:3px solid var(--gold)}
-.t-title{font-weight:700;font-size:.85rem}.t-msg{font-size:.75rem;color:var(--muted);margin-top:2px}
-@keyframes tin{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
-@keyframes tout{to{opacity:0;transform:translateY(-6px)}}
-.toast-exit{animation:tout .2s ease forwards}
+/* CHIPS */
+.chip{display:inline-flex;align-items:center;padding:3px 10px;border-radius:999px;font-size:.7rem;font-weight:700}
+.c-green{background:rgba(0,200,150,.12);color:var(--accent);border:1px solid rgba(0,200,150,.2)}
+.c-gold{background:rgba(245,199,110,.1);color:var(--gold);border:1px solid rgba(245,199,110,.2)}
+.c-blue{background:rgba(0,153,255,.1);color:#60a5fa;border:1px solid rgba(0,153,255,.2)}
+.c-red{background:rgba(255,107,107,.1);color:var(--danger);border:1px solid rgba(255,107,107,.2)}
+.c-gray{background:var(--glass-bg);color:var(--text3);border:1px solid var(--glass-border)}
+.c-purple{background:rgba(139,92,246,.1);color:#a78bfa;border:1px solid rgba(139,92,246,.2)}
 
-/* Modal */
-.modal-overlay{position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.6);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:.2s}
-.modal-overlay.show{opacity:1;pointer-events:all}
-.modal-card{background:var(--card2);border:1px solid var(--border2);border-radius:var(--r);padding:24px;width:100%;max-width:480px;transform:translateY(8px);transition:.22s;max-height:90vh;overflow-y:auto}
-.modal-overlay.show .modal-card{transform:none}
-.modal-title{font-weight:800;font-size:1.1rem;margin-bottom:6px}
-.modal-sub{font-size:.82rem;color:var(--muted);margin-bottom:18px}
-.modal-actions{display:flex;gap:10px;margin-top:18px;justify-content:flex-end}
+/* CODE CHIP */
+.code-chip{display:inline-flex;align-items:center;background:var(--bg2);border:1px solid var(--glass-border);border-radius:8px;padding:3px 10px;font-family:monospace;font-size:.78rem;color:var(--accent);letter-spacing:.06em}
 
-/* Content type tabs */
-.type-tabs{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap}
-.type-tab{padding:7px 14px;border-radius:999px;border:1px solid var(--border2);background:transparent;color:var(--muted);font-weight:600;font-size:.82rem;cursor:pointer;transition:.15s}
-.type-tab.active{background:var(--accentSoft);color:var(--accentBright);border-color:var(--accent)}
-.type-tab:hover:not(.active){color:var(--text)}
-.type-panel{display:none}.type-panel.active{display:block}
+/* BUTTONS */
+.btn{border:none;border-radius:var(--r-sm);padding:9px 16px;font-weight:700;cursor:pointer;font-size:.86rem;transition:.18s;display:inline-flex;align-items:center;gap:6px}
+.btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;box-shadow:0 4px 14px var(--accent-glow)}
+.btn-primary:hover{opacity:.9;transform:translateY(-1px)}
+.btn-primary:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.btn-glass{background:var(--glass-bg);color:var(--text2);border:1px solid var(--glass-border);backdrop-filter:blur(10px)}
+.btn-glass:hover{color:var(--text);border-color:var(--glass-border-h)}
+.btn-danger{background:rgba(255,107,107,.1);color:var(--danger);border:1px solid rgba(255,107,107,.2)}
+.btn-danger:hover{background:rgba(255,107,107,.18)}
+.btn-gold{background:rgba(245,199,110,.1);color:var(--gold);border:1px solid rgba(245,199,110,.2)}
+.btn-gold:hover{background:rgba(245,199,110,.18)}
+.btn-sm{padding:5px 11px;font-size:.78rem}
+.btn-xs{padding:3px 9px;font-size:.72rem}
 
-/* Code display */
-.code-chip{display:inline-flex;align-items:center;gap:8px;background:var(--bg);border:1px solid var(--border2);border-radius:8px;padding:4px 10px;font-family:var(--mono);font-size:.8rem;color:var(--accentBright);letter-spacing:.08em}
+/* TOAST */
+#toasts{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none}
+.toast{display:flex;gap:10px;align-items:center;background:var(--glass-bg);backdrop-filter:blur(24px);border:1px solid var(--glass-border);border-radius:14px;padding:11px 18px;box-shadow:0 10px 40px rgba(0,0,0,.45);animation:tin .22s ease;pointer-events:all;white-space:nowrap}
+.ts{border-color:rgba(0,200,150,.3)}.te{border-color:rgba(255,107,107,.3)}.tw{border-color:rgba(245,199,110,.3)}.ti{border-color:rgba(0,153,255,.3)}
+@keyframes tin{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes tout{to{opacity:0;transform:translateY(8px)}}
+.tx{animation:tout .2s ease forwards}
 
-/* Empty */
-.empty{padding:40px;text-align:center;color:var(--muted)}
-.empty-icon{font-size:2.5rem;margin-bottom:12px}
-.empty-txt{font-size:.9rem}
+/* MODAL */
+.mo{position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.55);backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:.22s}
+.mo.show{opacity:1;pointer-events:all}
+.mc{border-radius:var(--r-xl);padding:28px;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;background:var(--glass-bg);backdrop-filter:blur(40px);border:1px solid var(--glass-border);box-shadow:0 20px 60px rgba(0,0,0,.6);transform:translateY(10px) scale(.98);transition:.24s}
+.mo.show .mc{transform:none}
+.mc-title{font-weight:900;font-size:1.1rem;margin-bottom:18px}
+.mc-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:18px}
 
-/* Loader */
-.loader{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite}
+/* CONTENT TYPE TABS */
+.ct-tabs{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:16px}
+.ct-tab{padding:7px 14px;border-radius:999px;border:1px solid var(--glass-border);background:transparent;color:var(--text3);font-weight:700;font-size:.8rem;cursor:pointer;transition:.15s}
+.ct-tab.on{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border-color:transparent;box-shadow:0 3px 12px var(--accent-glow)}
+.ct-tab:hover:not(.on){color:var(--text);border-color:var(--glass-border-h)}
+.ct-panel{display:none}.ct-panel.on{display:block}
+
+/* EXAM BUILDER */
+.question-card{border:1px solid var(--glass-border);border-radius:var(--r);padding:16px;margin-bottom:12px;position:relative;background:var(--glass-bg)}
+.question-num{font-size:.68rem;font-family:monospace;color:var(--text3);margin-bottom:8px;text-transform:uppercase;letter-spacing:.1em}
+.options-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.option-row{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:var(--r-sm);border:1px solid var(--glass-border);background:var(--bg2);cursor:pointer;transition:.15s}
+.option-row:hover{border-color:var(--accent)}
+.option-row.correct{border-color:var(--accent);background:rgba(0,200,150,.08)}
+.option-circle{width:20px;height:20px;border-radius:50%;border:2px solid var(--glass-border-h);flex-shrink:0;display:grid;place-items:center;font-size:.6rem;font-weight:700;transition:.15s}
+.option-row.correct .option-circle{background:var(--accent);border-color:var(--accent);color:#fff}
+.option-lbl{font-weight:700;font-size:.78rem;color:var(--text3)}
+
+/* VIDEO PARTS */
+.video-part{border:1px solid var(--glass-border);border-radius:var(--r-sm);padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;background:var(--glass-bg)}
+.vp-num{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:grid;place-items:center;font-size:.75rem;font-weight:900;color:#fff;flex-shrink:0}
+
+/* LOADER */
+.ld{display:inline-block;width:15px;height:15px;border:2px solid rgba(255,255,255,.15);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite}
+[data-theme="light"] .ld{border:2px solid rgba(0,0,0,.1);border-top-color:var(--accent)}
 @keyframes spin{to{transform:rotate(360deg)}}
+.loading{display:flex;align-items:center;justify-content:center;padding:50px;gap:12px;color:var(--text3)}
+.empty-state{display:flex;flex-direction:column;align-items:center;padding:40px;gap:10px;color:var(--text3);text-align:center}
+.empty-ico{font-size:2.5rem}
 
-/* Login Gate */
-#loginGate{position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;align-items:center;justify-content:center}
-.login-card{background:var(--card);border:1px solid var(--border2);border-radius:var(--r);padding:32px;width:100%;max-width:360px;box-shadow:var(--shadow)}
-.login-card::before{content:'';display:block;height:3px;border-radius:999px;background:linear-gradient(90deg,var(--gold),var(--accent2));margin-bottom:20px}
-.login-title{font-weight:800;font-size:1.4rem;letter-spacing:-.03em;margin-bottom:4px}
-.login-sub{font-size:.82rem;color:var(--muted);margin-bottom:20px}
+/* LOGIN GATE */
+#loginGate{position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px}
+#loginGate::before{content:'';position:absolute;inset:0;background:linear-gradient(145deg,var(--bg),var(--bg2))}
+.lg-wrap{width:100%;max-width:380px;position:relative;z-index:1}
+.lg-logo{text-align:center;margin-bottom:26px}
+.lg-mark{width:56px;height:56px;border-radius:16px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:grid;place-items:center;font-weight:900;font-size:1.2rem;color:#fff;margin:0 auto 10px;box-shadow:0 10px 28px var(--accent-glow)}
+.lg-title{font-size:1.5rem;font-weight:900;letter-spacing:-.03em}
+.lg-title em{font-style:normal;color:var(--gold)}
+.lg-sub{font-size:.8rem;color:var(--text3);margin-top:3px}
+.lg-card{border-radius:var(--r-xl);padding:28px;position:relative;overflow:hidden}
+.lg-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--gold),var(--accent),var(--accent2))}
 
-@media(max-width:900px){.sidebar{display:none}.main{margin-right:0}.stats-grid{grid-template-columns:1fr 1fr}.form-row.cols-3{grid-template-columns:1fr}}
-@media(max-width:600px){.stats-grid{grid-template-columns:1fr}.form-row.cols-2{grid-template-columns:1fr}.content{padding:16px}}
+/* RESPONSIVE */
+@media(max-width:900px){
+  .sidebar{display:none}.main{margin:0!important}
+  .stats-grid{grid-template-columns:1fr 1fr}
+  .fr-3{grid-template-columns:1fr}
+  .options-grid{grid-template-columns:1fr}
+}
+@media(max-width:600px){
+  .stats-grid{grid-template-columns:1fr}
+  .fr-2{grid-template-columns:1fr}
+  .content{padding:16px}
+}
 </style>
 </head>
 <body>
-<div id="toast-container"></div>
 
-<!-- Login Gate -->
-<div id="loginGate">
-  <div class="login-card">
-    <div class="login-title">kalawy</div>
-    <div class="login-sub">ادخل بحسابك للمتابعة — Admin أو Teacher</div>
-    <div class="fw" style="margin-bottom:12px">
-      <span class="flbl">البريد الإلكتروني</span>
-      <input type="email" id="lg-email" class="inp" placeholder="example@email.com" dir="ltr">
-    </div>
-    <div class="fw" style="margin-bottom:16px">
-      <span class="flbl">كلمة السر</span>
-      <input type="password" id="lg-pass" class="inp" placeholder="••••••••" dir="ltr">
-    </div>
-    <button id="lg-btn" class="btn btn-primary" style="width:100%;justify-content:center" onclick="doLogin()">دخول</button>
-    <div id="lg-err" style="font-size:.8rem;color:var(--danger);margin-top:10px;text-align:center"></div>
-  </div>
+<div class="bg-canvas" aria-hidden="true">
+  <div class="orb o1"></div><div class="orb o2"></div><div class="orb o3"></div>
 </div>
+<div id="toasts"></div>
 
-<!-- Delete Modal -->
-<div class="modal-overlay" id="deleteModal">
-  <div class="modal-card">
-    <div class="modal-title">تأكيد الحذف</div>
-    <div class="modal-sub" id="deleteModalMsg">هل أنت متأكد؟</div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal('deleteModal')">إلغاء</button>
-      <button class="btn btn-danger" id="deleteConfirmBtn">حذف</button>
+<!-- DELETE MODAL -->
+<div class="mo" id="delMo">
+  <div class="mc" style="max-width:420px">
+    <div class="mc-title">⚠️ تأكيد الحذف</div>
+    <div id="delMsg" style="color:var(--text3);font-size:.9rem;line-height:1.6"></div>
+    <div class="mc-actions">
+      <button class="btn btn-glass" onclick="closeMo('delMo')">إلغاء</button>
+      <button class="btn btn-danger" id="delConfirm">حذف</button>
     </div>
   </div>
 </div>
 
-<!-- Codes Modal -->
-<div class="modal-overlay" id="codesModal">
-  <div class="modal-card" style="max-width:640px">
-    <div class="modal-title">🔑 أكواد الحصة</div>
-    <div class="modal-sub" id="codesModalSub">—</div>
+<!-- LESSON CONTENT MODAL -->
+<div class="mo" id="contentMo">
+  <div class="mc" style="max-width:640px">
+    <div class="mc-title" id="contentMoTitle">📋 إدارة محتوى الحصة</div>
+    <!-- Type tabs -->
+    <div class="ct-tabs" id="ctTabs">
+      <button class="ct-tab on" onclick="swCT('video')">🎥 فيديو</button>
+      <button class="ct-tab" onclick="swCT('exam')">📝 امتحان</button>
+      <button class="ct-tab" onclick="swCT('homework')">📌 واجب</button>
+      <button class="ct-tab" onclick="swCT('pdf')">📄 PDF</button>
+      <button class="ct-tab" onclick="swCT('image')">🖼️ صورة</button>
+      <button class="ct-tab" onclick="swCT('text')">✍️ نص</button>
+    </div>
 
-    <!-- Stats bar -->
-    <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap">
-      <div style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:var(--r-sm);padding:10px 14px;text-align:center">
-        <div style="font-size:1.4rem;font-weight:800" id="codes-total">—</div>
-        <div style="font-size:.7rem;color:var(--muted);font-family:var(--mono);text-transform:uppercase">إجمالي</div>
+    <!-- VIDEO PARTS -->
+    <div class="ct-panel on" id="ct-video">
+      <div style="margin-bottom:14px">
+        <div class="fw" style="margin-bottom:8px"><span class="fl">اسم الجزء</span><input class="inp" id="vp-title" placeholder="مثال: الجزء الأول — المقدمة"></div>
+        <div class="fw" style="margin-bottom:8px"><span class="fl">رابط يوتيوب</span><input class="inp" id="vp-url" placeholder="https://youtube.com/watch?v=..." dir="ltr"></div>
+        <button class="btn btn-primary" onclick="addVideoPart()">➕ إضافة الجزء</button>
       </div>
-      <div style="flex:1;background:var(--accentSoft);border:1px solid var(--accent);border-radius:var(--r-sm);padding:10px 14px;text-align:center">
-        <div style="font-size:1.4rem;font-weight:800;color:var(--accentBright)" id="codes-used">—</div>
-        <div style="font-size:.7rem;color:var(--muted);font-family:var(--mono);text-transform:uppercase">مستخدم</div>
+      <div id="video-parts-list"></div>
+    </div>
+
+    <!-- EXAM -->
+    <div class="ct-panel" id="ct-exam">
+      <div class="form-row fr-2" style="margin-bottom:12px">
+        <div class="fw"><span class="fl">عنوان الامتحان</span><input class="inp" id="ex-title" placeholder="امتحان الوحدة الأولى"></div>
+        <div class="fw"><span class="fl">مدة الامتحان (دقيقة)</span><input class="inp" id="ex-dur" type="number" placeholder="60" min="1"></div>
       </div>
-      <div style="flex:1;background:var(--goldSoft);border:1px solid rgba(196,154,82,.3);border-radius:var(--r-sm);padding:10px 14px;text-align:center">
-        <div style="font-size:1.4rem;font-weight:800;color:var(--gold)" id="codes-free">—</div>
-        <div style="font-size:.7rem;color:var(--muted);font-family:var(--mono);text-transform:uppercase">متاح</div>
-      </div>
-    </div>
+      <div class="fw" style="margin-bottom:14px"><span class="fl">وقت فتح الامتحان</span><input class="inp" id="ex-time" type="datetime-local"></div>
 
-    <!-- Generate -->
-    <div style="display:flex;gap:8px;margin-bottom:16px;align-items:center">
-      <select class="inp hv" id="gen-count" style="width:140px">
-        <option value="10">10 أكواد</option>
-        <option value="25">25 كود</option>
-        <option value="50" selected>50 كود</option>
-        <option value="100">100 كود</option>
-      </select>
-      <button class="btn btn-primary" id="gen-btn" onclick="generateCodes()">⚡ توليد أكواد</button>
-      <button class="btn btn-ghost btn-sm" onclick="copyUnusedCodes()">📋 نسخ المتاحة</button>
-    </div>
-
-    <!-- Tabs -->
-    <div style="display:flex;gap:4px;margin-bottom:12px;background:rgba(255,255,255,.04);padding:3px;border-radius:10px">
-      <button class="type-tab active" id="tab-all"      onclick="filterCodes('all')">الكل</button>
-      <button class="type-tab"        id="tab-unused"   onclick="filterCodes('unused')">✅ متاح</button>
-      <button class="type-tab"        id="tab-used"     onclick="filterCodes('used')">🔴 مستخدم</button>
-    </div>
-
-    <!-- Codes list -->
-    <div id="codes-list" style="max-height:320px;overflow-y:auto;display:flex;flex-direction:column;gap:6px">
-      <div class="empty"><div class="loader"></div></div>
-    </div>
-
-    <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal('codesModal')">إغلاق</button>
-    </div>
-  </div>
-</div>
-
-<!-- Add Lesson Modal -->
-<div class="modal-overlay" id="lessonModal">
-  <div class="modal-card" style="max-width:520px">
-    <div class="modal-title">إضافة حصة جديدة</div>
-    <div class="modal-sub" id="lessonModalSub">اختار الشابتر وادخل تفاصيل الحصة</div>
-    <div class="fw" style="margin-bottom:12px">
-      <span class="flbl">الشابتر</span>
-      <select class="inp hv" id="lesson-chapter" onchange="this.classList.add('hv')">
-        <option value="" disabled selected>اختار الشابتر</option>
-      </select>
-    </div>
-    <div class="form-row cols-2" style="margin-bottom:12px">
-      <div class="fw">
-        <span class="flbl">عنوان الحصة</span>
-        <input class="inp" id="lesson-title" placeholder="مثال: درس المشتقات">
-      </div>
-      <div class="fw">
-        <span class="flbl">كود الحصة</span>
-        <div style="display:flex;gap:6px">
-          <input class="inp" id="lesson-code" placeholder="KW-0001" dir="ltr" style="flex:1">
-          <button class="btn btn-ghost btn-sm" onclick="genCode()" title="توليد كود تلقائي">🎲</button>
+      <div style="border-top:1px solid var(--glass-border);padding-top:14px;margin-bottom:12px">
+        <div style="font-weight:700;font-size:.88rem;margin-bottom:10px">➕ أضف سؤال</div>
+        <div class="fw" style="margin-bottom:8px"><span class="fl">نص السؤال</span><textarea class="inp" id="q-text" rows="2" placeholder="اكتب السؤال هنا..."></textarea></div>
+        <div class="fw" style="margin-bottom:10px">
+          <span class="fl">صورة للسؤال (اختياري)</span>
+          <div class="img-upload" style="padding:12px">
+            <input type="file" id="q-img-file" accept="image/*" onchange="previewQImg(this)">
+            <div class="img-upload-ico">🖼️</div>
+            <div class="img-upload-txt">اضغط لرفع صورة للسؤال</div>
+            <div class="upload-progress" id="q-img-prog" style="display:none"><div class="upload-bar" id="q-img-bar"></div></div>
+            <img id="q-img-preview" style="display:none;max-height:100px;width:100%;object-fit:contain;margin-top:8px;border-radius:8px">
+          </div>
         </div>
+
+        <div style="margin-bottom:10px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <span class="fl">الاختيارات (حتى 10)</span>
+            <button class="btn btn-xs btn-glass" onclick="addOption()" id="add-opt-btn">+ إضافة خيار</button>
+          </div>
+          <div id="options-builder"></div>
+        </div>
+        <button class="btn btn-primary btn-sm" id="add-q-btn" onclick="addQuestion()">حفظ السؤال</button>
       </div>
+      <div id="questions-list"></div>
     </div>
-    <div class="fw" style="margin-bottom:12px">
-      <span class="flbl">وقت الحصة (اختياري)</span>
-      <input class="inp" id="lesson-time" type="datetime-local">
+
+    <!-- HOMEWORK -->
+    <div class="ct-panel" id="ct-homework">
+      <div class="fw" style="margin-bottom:8px"><span class="fl">عنوان الواجب</span><input class="inp" id="hw-title" placeholder="واجب الوحدة..."></div>
+      <div class="fw" style="margin-bottom:8px"><span class="fl">وصف الواجب</span><textarea class="inp" id="hw-desc" rows="3" placeholder="تفاصيل الواجب..."></textarea></div>
+      <div class="fw" style="margin-bottom:8px"><span class="fl">تاريخ التسليم</span><input class="inp" id="hw-due" type="datetime-local"></div>
+      <div class="fw" style="margin-bottom:14px"><span class="fl">رابط PDF (اختياري)</span><input class="inp" id="hw-pdf" placeholder="https://..." dir="ltr"></div>
+      <button class="btn btn-primary" onclick="saveHomework()">💾 حفظ الواجب</button>
+      <div id="hw-list" style="margin-top:14px"></div>
     </div>
-    <div class="fw" style="margin-bottom:16px">
-      <span class="flbl">وصف (اختياري)</span>
-      <textarea class="inp" id="lesson-desc" placeholder="موضوع الحصة..."></textarea>
+
+    <!-- PDF -->
+    <div class="ct-panel" id="ct-pdf">
+      <div class="fw" style="margin-bottom:8px"><span class="fl">عنوان الملف</span><input class="inp" id="pdf-title" placeholder="ملف الشرح..."></div>
+      <div class="fw" style="margin-bottom:14px"><span class="fl">رابط PDF</span><input class="inp" id="pdf-url" placeholder="https://..." dir="ltr"></div>
+      <button class="btn btn-primary" onclick="addContent('pdf')">➕ إضافة</button>
     </div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal('lessonModal')">إلغاء</button>
-      <button class="btn btn-primary" id="lesson-save-btn" onclick="saveLesson()">حفظ الحصة</button>
+
+    <!-- IMAGE -->
+    <div class="ct-panel" id="ct-image">
+      <div class="fw" style="margin-bottom:8px"><span class="fl">عنوان الصورة</span><input class="inp" id="img-title" placeholder="شكل توضيحي..."></div>
+      <div class="fw" style="margin-bottom:14px"><span class="fl">رابط الصورة</span><input class="inp" id="img-url" placeholder="https://..." dir="ltr"></div>
+      <button class="btn btn-primary" onclick="addContent('image')">➕ إضافة</button>
+    </div>
+
+    <!-- TEXT -->
+    <div class="ct-panel" id="ct-text">
+      <div class="fw" style="margin-bottom:14px"><span class="fl">النص</span><textarea class="inp" id="txt-body" rows="5" placeholder="اكتب هنا..."></textarea></div>
+      <button class="btn btn-primary" onclick="addContent('text')">➕ إضافة</button>
+    </div>
+
+    <div style="display:flex;justify-content:flex-end;margin-top:18px;border-top:1px solid var(--glass-border);padding-top:14px">
+      <button class="btn btn-glass" onclick="closeMo('contentMo')">إغلاق</button>
     </div>
   </div>
 </div>
 
-<!-- Content Modal -->
-<div class="modal-overlay" id="contentModal">
-  <div class="modal-card" style="max-width:540px">
-    <div class="modal-title">محتوى الحصة</div>
-    <div class="modal-sub" id="contentModalSub">إضافة محتوى</div>
-    <div class="type-tabs">
-      <button class="type-tab active" onclick="switchType('youtube')">🎥 يوتيوب</button>
-      <button class="type-tab" onclick="switchType('pdf')">📄 PDF</button>
-      <button class="type-tab" onclick="switchType('image')">🖼️ صورة</button>
-      <button class="type-tab" onclick="switchType('text')">📝 نص</button>
+<!-- LOGIN GATE -->
+<div id="loginGate">
+  <div class="bg-canvas" aria-hidden="true" style="position:absolute">
+    <div class="orb o1"></div><div class="orb o2"></div>
+  </div>
+  <div style="position:absolute;top:18px;right:18px;display:flex;gap:8px;z-index:2">
+    <div class="tpill"><button class="topt on" onclick="setTheme('dark')">🌙</button><button class="topt" onclick="setTheme('light')">☀️</button></div>
+    <div class="tpill"><button class="topt on" onclick="setLang('ar')">ع</button><button class="topt" onclick="setLang('en')">EN</button></div>
+  </div>
+  <div class="lg-wrap">
+    <div class="lg-logo">
+      <div class="lg-mark">KW</div>
+      <div class="lg-title">kala<em>wy</em></div>
+      <div class="lg-sub">Admin & Teacher Portal</div>
     </div>
-    <div id="type-youtube" class="type-panel active">
-      <div class="fw" style="margin-bottom:12px">
-        <span class="flbl">رابط يوتيوب</span>
-        <input class="inp" id="ct-youtube-url" placeholder="https://youtube.com/watch?v=..." dir="ltr">
-      </div>
-      <div class="fw"><span class="flbl">عنوان (اختياري)</span><input class="inp" id="ct-youtube-title" placeholder="عنوان الفيديو"></div>
-    </div>
-    <div id="type-pdf" class="type-panel">
-      <div class="fw" style="margin-bottom:12px">
-        <span class="flbl">رابط الـ PDF</span>
-        <input class="inp" id="ct-pdf-url" placeholder="https://..." dir="ltr">
-      </div>
-      <div class="fw"><span class="flbl">عنوان (اختياري)</span><input class="inp" id="ct-pdf-title" placeholder="اسم الملف"></div>
-    </div>
-    <div id="type-image" class="type-panel">
-      <div class="fw" style="margin-bottom:12px">
-        <span class="flbl">رابط الصورة</span>
-        <input class="inp" id="ct-image-url" placeholder="https://..." dir="ltr">
-      </div>
-      <div class="fw"><span class="flbl">عنوان (اختياري)</span><input class="inp" id="ct-image-title" placeholder="وصف الصورة"></div>
-    </div>
-    <div id="type-text" class="type-panel">
-      <div class="fw">
-        <span class="flbl">النص</span>
-        <textarea class="inp" id="ct-text-body" placeholder="اكتب هنا..." style="min-height:120px"></textarea>
-      </div>
-    </div>
-    <div style="margin-top:16px">
-      <button class="btn btn-primary" id="ct-add-btn" onclick="addContent()">إضافة المحتوى</button>
-    </div>
-    <!-- existing content list -->
-    <div id="existing-content" style="margin-top:18px;display:flex;flex-direction:column;gap:8px"></div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal('contentModal')">إغلاق</button>
+    <div class="lg-card glass">
+      <div class="fw" style="margin-bottom:10px"><span class="fl">البريد الإلكتروني</span><input class="inp" id="lg-em" type="email" placeholder="admin@kalawy.com" dir="ltr"></div>
+      <div class="fw" style="margin-bottom:16px"><span class="fl">كلمة السر</span><input class="inp" id="lg-pw" type="password" placeholder="••••••••" dir="ltr"></div>
+      <button class="btn btn-primary" style="width:100%;justify-content:center" id="lg-btn" onclick="doLogin()">دخول</button>
+      <div id="lg-err" style="font-size:.8rem;color:var(--danger);margin-top:10px;text-align:center"></div>
     </div>
   </div>
 </div>
 
-<!-- Sidebar -->
-<aside class="sidebar">
+<!-- SIDEBAR -->
+<aside class="sidebar glass" id="sidebar">
   <div class="sidebar-logo">
     <div class="logo-row">
       <div class="logo-mark">KW</div>
       <div>
         <div class="logo-name">kala<em>wy</em></div>
-        <div class="role-badge" id="roleBadge">...</div>
+        <div class="role-tag" id="roleTag">...</div>
       </div>
     </div>
   </div>
   <nav class="sidebar-nav" id="sidebarNav"></nav>
   <div class="sidebar-footer">
-    <div class="user-row">
-      <div class="user-avatar" id="sidebarAvatar">?</div>
-      <div>
-        <div class="user-name" id="sidebarName">...</div>
-        <div class="user-role" id="sidebarRole">...</div>
-      </div>
+    <div class="user-pill">
+      <div class="user-av" id="sidebarAv">?</div>
+      <div><div class="user-name" id="sidebarName">...</div><div class="user-role" id="sidebarRole">...</div></div>
     </div>
     <button class="logout-btn" onclick="doLogout()">تسجيل الخروج</button>
   </div>
 </aside>
 
-<!-- Main -->
+<!-- MAIN -->
 <main class="main">
   <div class="topbar">
-    <div>
-      <div class="page-title" id="topbarTitle">Dashboard</div>
-      <div class="page-sub" id="topbarSub">مرحباً بك</div>
+    <div class="topbar-left">
+      <div class="page-title" id="topTitle">Dashboard</div>
+      <div class="page-sub" id="topSub">نظرة عامة</div>
     </div>
-    <button class="btn btn-ghost btn-sm" onclick="refreshCurrent()">🔄 تحديث</button>
+    <div class="topbar-right">
+      <div class="tpill"><button class="topt on" id="nav-dark" onclick="setTheme('dark')">🌙</button><button class="topt" id="nav-light" onclick="setTheme('light')">☀️</button></div>
+      <div class="tpill"><button class="topt on" id="nav-ar" onclick="setLang('ar')">ع</button><button class="topt" id="nav-en" onclick="setLang('en')">EN</button></div>
+      <button class="btn btn-glass btn-sm" onclick="refresh()">🔄</button>
+    </div>
   </div>
   <div class="content" id="mainContent"></div>
 </main>
 
 <script>
-const SUPABASE_URL  = "https://xzjxmfgymbvordumrush.supabase.co";
-const SUPABASE_ANON = "sb_publishable_yDrrS95uLq4ch8pu0OwZ0w_6UiBx22e";
-const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+// ── Config ───────────────────────────────────────────────────────────────────
+const SB_URL  = "https://xzjxmfgymbvordumrush.supabase.co";
+const SB_ANON = "sb_publishable_yDrrS95uLq4ch8pu0OwZ0w_6UiBx22e";
+const sb = window.supabase.createClient(SB_URL, SB_ANON);
 const GRADES = {1:'أولى ثانوي',2:'تانية ثانوي',3:'تالتة ثانوي'};
-let CURRENT_ROLE = '';
-let CURRENT_USER_ID = '';
-let currentPage = 'dashboard';
-let _activeContentLessonId = null;
-let _deleteResolve = null;
 
-// ── Toast ─────────────────────────────────────────────────────────────────────
-function toast(type,title,msg='',dur=4000){
-  const icons={success:'✅',error:'❌',info:'ℹ️',warning:'⚠️'};
-  const c=document.getElementById('toast-container');
-  const t=document.createElement('div');
-  t.className=`toast ${type}`;
-  t.innerHTML=`<div style="font-size:1.1rem">${icons[type]}</div><div><div class="t-title">${title}</div>${msg?`<div class="t-msg">${msg}</div>`:''}</div>`;
-  c.appendChild(t);
-  setTimeout(()=>{t.classList.add('toast-exit');setTimeout(()=>t.remove(),220);},dur);
+let ME = null, ROLE = '', curPage = 'dashboard';
+let _delResolve = null;
+let _activeLessonId = null, _activeLessonTitle = '';
+let _examId = null;
+let _qImgUrl = '';
+let _options = [];
+let _optionCount = 0;
+
+// ── Toast ──────────────────────────────────────────────────────────────────
+function toast(t, msg, dur=4000) {
+  const icons={s:'✅',e:'❌',w:'⚠️',i:'ℹ️'};
+  const c=document.getElementById('toasts');
+  const el=document.createElement('div');
+  el.className=`toast t${t}`;
+  el.innerHTML=`<span>${icons[t]}</span><span style="font-weight:700;font-size:.86rem">${msg}</span>`;
+  c.appendChild(el);
+  setTimeout(()=>{el.classList.add('tx');setTimeout(()=>el.remove(),220);},dur);
 }
 
-// ── Modal ─────────────────────────────────────────────────────────────────────
-function openDeleteModal(msg){
-  document.getElementById('deleteModalMsg').textContent=msg||'هل أنت متأكد؟';
-  document.getElementById('deleteModal').classList.add('show');
-  return new Promise(res=>{_deleteResolve=res;});
+// ── Modal ──────────────────────────────────────────────────────────────────
+function openMo(id){document.getElementById(id).classList.add('show');}
+function closeMo(id){document.getElementById(id).classList.remove('show');}
+function confirmDel(msg){
+  document.getElementById('delMsg').textContent=msg;
+  openMo('delMo');
+  return new Promise(r=>{_delResolve=r;});
 }
-function closeModal(id){
-  document.getElementById(id).classList.remove('show');
-  if(_deleteResolve){_deleteResolve(false);_deleteResolve=null;}
-}
-document.getElementById('deleteConfirmBtn').onclick=()=>{
-  document.getElementById('deleteModal').classList.remove('show');
-  if(_deleteResolve){_deleteResolve(true);_deleteResolve=null;}
-};
+document.getElementById('delConfirm').onclick=()=>{closeMo('delMo');if(_delResolve){_delResolve(true);_delResolve=null;}};
+document.addEventListener('click',e=>{if(e.target.classList.contains('mo'))closeMo(e.target.id);});
 
-// ── Auth ──────────────────────────────────────────────────────────────────────
+// ── Theme / Lang ───────────────────────────────────────────────────────────
+function setTheme(th){
+  document.documentElement.setAttribute('data-theme',th);
+  localStorage.setItem('kw-theme',th);
+  ['nav-dark','nav-light'].forEach(id=>{const el=document.getElementById(id);if(el)el.classList.toggle('on',el.id.endsWith(th));});
+}
+function setLang(lg){
+  document.documentElement.setAttribute('data-lang',lg);
+  document.documentElement.setAttribute('dir',lg==='ar'?'rtl':'ltr');
+  localStorage.setItem('kw-lang',lg);
+  ['nav-ar','nav-en'].forEach(id=>{const el=document.getElementById(id);if(el)el.classList.toggle('on',el.id.endsWith(lg));});
+}
+
+// ── Auth ───────────────────────────────────────────────────────────────────
 async function doLogin(){
-  const email=document.getElementById('lg-email').value.trim();
-  const pass=document.getElementById('lg-pass').value;
-  const btn=document.getElementById('lg-btn');
+  const em=document.getElementById('lg-em').value.trim();
+  const pw=document.getElementById('lg-pw').value;
   const err=document.getElementById('lg-err');
+  const btn=document.getElementById('lg-btn');
   err.textContent='';
-  if(!email||!pass)return err.textContent='ادخل البريد وكلمة السر';
-  btn.innerHTML='<span class="loader"></span>';btn.disabled=true;
-  const{data,error}=await sb.auth.signInWithPassword({email,password:pass});
+  if(!em||!pw)return err.textContent='ادخل البريد وكلمة السر';
+  btn.innerHTML='<span class="ld"></span>';btn.disabled=true;
+  const{data,error}=await sb.auth.signInWithPassword({email:em,password:pw});
   if(error){err.textContent='بيانات غلط';btn.textContent='دخول';btn.disabled=false;return;}
-  const{data:profile}=await sb.from('profiles').select('role,full_name').eq('id',data.user.id).single();
-  if(!profile||!['admin','teacher'].includes(profile.role)){
-    await sb.auth.signOut();
-    err.textContent='الحساب ده مش admin أو teacher';
-    btn.textContent='دخول';btn.disabled=false;return;
+  const{data:p}=await sb.from('profiles').select('role,full_name').eq('id',data.user.id).single();
+  if(!p||!['admin','teacher'].includes(p.role)){
+    await sb.auth.signOut();err.textContent='الحساب ده مش admin أو teacher';btn.textContent='دخول';btn.disabled=false;return;
   }
-  initDashboard(data.user,profile);
+  initDash(data.user,p);
 }
-
 async function doLogout(){await sb.auth.signOut();location.reload();}
-
 async function checkSession(){
+  const th=localStorage.getItem('kw-theme')||'dark';
+  const lg=localStorage.getItem('kw-lang')||'ar';
+  setTheme(th);setLang(lg);
   const{data:{session}}=await sb.auth.getSession();
   if(!session)return;
-  const{data:profile}=await sb.from('profiles').select('role,full_name').eq('id',session.user.id).single();
-  if(!profile||!['admin','teacher'].includes(profile.role)){await sb.auth.signOut();return;}
-  initDashboard(session.user,profile);
+  const{data:p}=await sb.from('profiles').select('role,full_name').eq('id',session.user.id).single();
+  if(!p||!['admin','teacher'].includes(p.role)){await sb.auth.signOut();return;}
+  initDash(session.user,p);
 }
 
-function initDashboard(user,profile){
-  CURRENT_ROLE=profile.role;
-  CURRENT_USER_ID=user.id;
-  document.getElementById('sidebarAvatar').textContent=(profile.full_name||user.email)[0].toUpperCase();
-  document.getElementById('sidebarName').textContent=profile.full_name||user.email;
-  document.getElementById('sidebarRole').textContent=profile.role;
-  document.getElementById('roleBadge').textContent=profile.role;
-  document.getElementById('roleBadge').className='role-badge '+profile.role;
+function initDash(user,profile){
+  ME=user;ROLE=profile.role;
   document.getElementById('loginGate').remove();
-  buildNav();
-  goTo('dashboard');
+  document.getElementById('sidebar').style.display='flex';
+  document.getElementById('sidebarName').textContent=profile.full_name||user.email;
+  document.getElementById('sidebarAv').textContent=(profile.full_name||user.email)[0].toUpperCase();
+  document.getElementById('sidebarRole').textContent=ROLE;
+  const roleTag=document.getElementById('roleTag');
+  roleTag.textContent=ROLE;roleTag.className=`role-tag tag-${ROLE}`;
+  buildNav();goTo('dashboard');
 }
 
-// ── Navigation ────────────────────────────────────────────────────────────────
+// ── Nav ─────────────────────────────────────────────────────────────────────
 const adminPages={
-  dashboard:{icon:'📊',label:'Dashboard',    sub:'نظرة عامة'},
-  subjects: {icon:'📚',label:'المواد',        sub:'إضافة وإدارة المواد'},
-  teachers: {icon:'👨‍🏫',label:'المدرسين',     sub:'إضافة وإدارة المدرسين'},
-  chapters: {icon:'📖',label:'الشابترات',     sub:'إضافة وإدارة الشابترات'},
-  students: {icon:'🎓',label:'الطلاب',        sub:'عرض الطلاب'},
+  dashboard:{ico:'📊',lbl:'Dashboard',sub:'نظرة عامة'},
+  subjects:{ico:'📚',lbl:'المواد',sub:'إضافة وإدارة المواد'},
+  teachers:{ico:'👨‍🏫',lbl:'المدرسين',sub:'إضافة وإدارة المدرسين'},
+  chapters:{ico:'📖',lbl:'الشابترات',sub:'إضافة وإدارة الشابترات'},
+  lessons:{ico:'🎬',lbl:'الحصص',sub:'إدارة الحصص والمحتوى'},
+  students:{ico:'🎓',lbl:'الطلاب',sub:'عرض الطلاب'},
 };
 const teacherPages={
-  dashboard:{icon:'📊',label:'Dashboard',    sub:'نظرة عامة'},
-  mychapters:{icon:'📖',label:'شابتراتي',    sub:'شابتراتي وحصصي'},
-  mylessons: {icon:'🎬',label:'حصصي',         sub:'إدارة الحصص والمحتوى'},
+  dashboard:{ico:'📊',lbl:'Dashboard',sub:'نظرة عامة'},
+  mychapters:{ico:'📖',lbl:'شابتراتي',sub:'شابتراتي'},
+  mylessons:{ico:'🎬',lbl:'حصصي',sub:'إدارة الحصص والمحتوى'},
 };
 
 function buildNav(){
-  const pages=CURRENT_ROLE==='admin'?adminPages:teacherPages;
+  const pages=ROLE==='admin'?adminPages:teacherPages;
   const nav=document.getElementById('sidebarNav');
   nav.innerHTML='';
   Object.entries(pages).forEach(([key,p],i)=>{
     const btn=document.createElement('button');
-    btn.className='nav-item'+(i===0?' active':'');
-    btn.innerHTML=`<div class="nav-icon">${p.icon}</div>${p.label}`;
+    btn.className='nav-item';btn.dataset.page=key;
+    btn.innerHTML=`<div class="nav-ico">${p.ico}</div>${p.lbl}`;
     btn.onclick=()=>goTo(key);
-    btn.dataset.page=key;
     nav.appendChild(btn);
-    if(key==='chapters'||key==='mychapters'){
-      const sep=document.createElement('div');sep.className='nav-sep';nav.appendChild(sep);
-    }
+    if(['chapters','mychapters'].includes(key)){const sep=document.createElement('div');sep.className='nav-sep';nav.appendChild(sep);}
   });
 }
 
 function goTo(page){
   document.querySelectorAll('.nav-item').forEach(b=>b.classList.toggle('active',b.dataset.page===page));
-  const pages=CURRENT_ROLE==='admin'?adminPages:teacherPages;
-  const info=pages[page]||{label:page,sub:''};
-  document.getElementById('topbarTitle').textContent=info.label;
-  document.getElementById('topbarSub').textContent=info.sub;
-  currentPage=page;
+  curPage=page;
+  const pages=ROLE==='admin'?adminPages:teacherPages;
+  const info=pages[page]||{lbl:page,sub:''};
+  document.getElementById('topTitle').textContent=info.lbl;
+  document.getElementById('topSub').textContent=info.sub;
   renderPage(page);
 }
-function refreshCurrent(){goTo(currentPage);}
+function refresh(){goTo(curPage);}
 
-// ── Page Router ───────────────────────────────────────────────────────────────
-function renderPage(page){
+async function renderPage(page){
   const c=document.getElementById('mainContent');
-  c.innerHTML='<div class="empty"><div class="loader"></div></div>';
-  if(page==='dashboard')    return CURRENT_ROLE==='admin'?renderAdminDash():renderTeacherDash();
-  if(page==='subjects')     return renderSubjects();
-  if(page==='teachers')     return renderTeachers();
-  if(page==='chapters')     return renderAdminChapters();
-  if(page==='students')     return renderStudents();
-  if(page==='mychapters')   return renderMyChapters();
-  if(page==='mylessons')    return renderMyLessons();
+  c.innerHTML='';
+  if(page==='dashboard') return ROLE==='admin'?renderAdminDash():renderTeacherDash();
+  if(page==='subjects')  return renderSubjects();
+  if(page==='teachers')  return renderTeachers();
+  if(page==='chapters')  return renderAdminChapters();
+  if(page==='lessons')   return renderAdminLessons();
+  if(page==='students')  return renderStudents();
+  if(page==='mychapters') return renderMyChapters();
+  if(page==='mylessons') return renderMyLessons();
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// ADMIN PAGES
-// ─────────────────────────────────────────────────────────────────────────────
+// ── Render helpers ──────────────────────────────────────────────────────────
+function setContent(html){document.getElementById('mainContent').innerHTML=html;}
+
+// ── IMAGE UPLOAD to Supabase Storage ──────────────────────────────────────
+async function uploadImage(file, folder='general', progressBarId=null) {
+  const ext = file.name.split('.').pop();
+  const path = `${folder}/${Date.now()}-${Math.random().toString(36).substr(2,6)}.${ext}`;
+  const { data, error } = await sb.storage.from('kalawy').upload(path, file, {
+    cacheControl: '3600', upsert: false,
+    onUploadProgress: (e) => {
+      if(progressBarId) {
+        const pct = Math.round((e.loaded/e.total)*100);
+        const bar = document.getElementById(progressBarId);
+        if(bar) bar.style.width = pct + '%';
+      }
+    }
+  });
+  if(error) throw error;
+  return `${SB_URL}/storage/v1/object/public/kalawy/${path}`;
+}
+
+// ── ADMIN DASHBOARD ─────────────────────────────────────────────────────────
 async function renderAdminDash(){
-  const c=document.getElementById('mainContent');
-  const[st,tc,sb2,ls]=await Promise.all([
-    sb.from('students').select('*',{count:'exact',head:true}),
-    sb.from('teachers').select('*',{count:'exact',head:true}),
+  setContent('<div class="loading"><div class="ld"></div></div>');
+  const[{count:sc},{count:tc},{count:stc},{count:lc}]=await Promise.all([
     sb.from('subjects').select('*',{count:'exact',head:true}),
+    sb.from('teachers').select('*',{count:'exact',head:true}),
+    sb.from('students').select('*',{count:'exact',head:true}),
     sb.from('lessons').select('*',{count:'exact',head:true}),
   ]);
-  const{data:recents}=await sb.from('students')
+  const{data:recent}=await sb.from('students')
     .select('id,grade_id,created_at,profiles(full_name,phone)')
     .order('created_at',{ascending:false}).limit(8);
-  c.innerHTML=`
+  setContent(`
   <div class="stats-grid">
-    <div class="stat-card s-green"><div class="stat-icon">🎓</div><div class="stat-num">${st.count??0}</div><div class="stat-label">الطلاب</div></div>
-    <div class="stat-card s-blue"><div class="stat-icon">👨‍🏫</div><div class="stat-num">${tc.count??0}</div><div class="stat-label">المدرسين</div></div>
-    <div class="stat-card s-gold"><div class="stat-icon">📚</div><div class="stat-num">${sb2.count??0}</div><div class="stat-label">المواد</div></div>
-    <div class="stat-card s-purple"><div class="stat-icon">🎬</div><div class="stat-num">${ls.count??0}</div><div class="stat-label">الحصص</div></div>
+    <div class="stat-card glass"><div class="stat-ico">🎓</div><div class="stat-num">${stc??0}</div><div class="stat-lbl">الطلاب</div></div>
+    <div class="stat-card glass"><div class="stat-ico">👨‍🏫</div><div class="stat-num">${tc??0}</div><div class="stat-lbl">المدرسين</div></div>
+    <div class="stat-card glass"><div class="stat-ico">📚</div><div class="stat-num">${sc??0}</div><div class="stat-lbl">المواد</div></div>
+    <div class="stat-card glass"><div class="stat-ico">🎬</div><div class="stat-num">${lc??0}</div><div class="stat-lbl">الحصص</div></div>
   </div>
-  <div class="panel">
-    <div class="panel-header"><span class="panel-title">آخر الطلاب المسجلين</span></div>
+  <div class="panel glass">
+    <div class="panel-head"><span class="panel-title">آخر الطلاب</span></div>
     <div class="tbl-wrap"><table>
       <thead><tr><th>الاسم</th><th>الموبايل</th><th>الصف</th><th>التسجيل</th></tr></thead>
-      <tbody>${(recents||[]).length?recents.map(s=>`
-        <tr>
-          <td><strong>${s.profiles?.full_name||'—'}</strong></td>
-          <td class="td-mono">${s.profiles?.phone||'—'}</td>
-          <td><span class="badge badge-green">${GRADES[s.grade_id]||s.grade_id}</span></td>
-          <td class="td-mono">${new Date(s.created_at).toLocaleDateString('ar-EG')}</td>
-        </tr>`).join(''):`<tr><td colspan="4"><div class="empty"><div class="empty-icon">🎓</div><div class="empty-txt">لا يوجد طلاب بعد</div></div></td></tr>`}
+      <tbody>${(recent||[]).map(s=>`<tr>
+        <td><strong>${s.profiles?.full_name||'—'}</strong></td>
+        <td class="td-mono">${s.profiles?.phone||'—'}</td>
+        <td><span class="chip c-green">${GRADES[s.grade_id]||s.grade_id}</span></td>
+        <td class="td-mono">${new Date(s.created_at).toLocaleDateString('ar-EG')}</td>
+      </tr>`).join('')||'<tr><td colspan="4"><div class="empty-state"><div class="empty-ico">🎓</div><div>لا يوجد طلاب</div></div></td></tr>'}
       </tbody>
     </table></div>
-  </div>`;
+  </div>`);
 }
 
+// ── SUBJECTS ────────────────────────────────────────────────────────────────
 async function renderSubjects(){
-  const c=document.getElementById('mainContent');
+  setContent('<div class="loading"><div class="ld"></div></div>');
   const{data}=await sb.from('subjects').select('*').order('created_at',{ascending:false});
-  c.innerHTML=`
-  <div class="panel">
-    <div class="panel-header"><span class="panel-title">إضافة مادة جديدة</span></div>
+  setContent(`
+  <div class="panel glass">
+    <div class="panel-head"><span class="panel-title">➕ إضافة مادة</span></div>
     <div class="panel-body">
-      <div class="form-row cols-2">
-        <div class="fw"><span class="flbl">اسم المادة</span><input class="inp" id="sub-name" placeholder="مثال: الرياضيات"></div>
-        <div class="fw"><span class="flbl">الصف</span>
+      <div class="form-row fr-2">
+        <div class="fw"><span class="fl">اسم المادة</span><input class="inp" id="sub-name" placeholder="الرياضيات"></div>
+        <div class="fw"><span class="fl">الصف</span>
           <select class="inp" id="sub-grade" onchange="this.classList.add('hv')">
-            <option value="" disabled selected>اختار الصف</option>
+            <option value="" disabled selected>اختار</option>
             <option value="1">أولى ثانوي</option><option value="2">تانية ثانوي</option><option value="3">تالتة ثانوي</option>
           </select>
+        </div>
+      </div>
+      <div class="fw" style="margin-bottom:14px"><span class="fl">صورة المادة</span>
+        <div class="img-upload" id="sub-img-drop">
+          <input type="file" id="sub-img-file" accept="image/*" onchange="previewImgField(this,'sub-img-preview','sub-img-drop')">
+          <div class="img-upload-ico">📸</div>
+          <div class="img-upload-txt">اضغط لرفع صورة المادة</div>
+          <div class="upload-progress" id="sub-img-prog" style="display:none"><div class="upload-bar" id="sub-img-bar"></div></div>
+          <img id="sub-img-preview" class="img-preview" style="display:none">
         </div>
       </div>
       <button class="btn btn-primary" id="sub-btn" onclick="addSubject()">إضافة المادة</button>
     </div>
   </div>
-  <div class="panel">
-    <div class="panel-header"><span class="panel-title">كل المواد</span></div>
+  <div class="panel glass">
+    <div class="panel-head"><span class="panel-title">المواد (${(data||[]).length})</span></div>
     <div class="tbl-wrap"><table>
-      <thead><tr><th>المادة</th><th>الصف</th><th>التاريخ</th><th>إجراء</th></tr></thead>
-      <tbody>${(data||[]).length?data.map(s=>`
-        <tr>
-          <td><strong>${s.name_ar}</strong></td>
-          <td><span class="badge badge-blue">${GRADES[s.grade_id]||s.grade_id}</span></td>
-          <td class="td-mono">${new Date(s.created_at).toLocaleDateString('ar-EG')}</td>
-          <td><button class="btn btn-danger btn-sm" onclick="deleteSubject('${s.id}','${s.name_ar}')">حذف</button></td>
-        </tr>`).join(''):`<tr><td colspan="4"><div class="empty"><div class="empty-icon">📚</div><div class="empty-txt">لا توجد مواد بعد</div></div></td></tr>`}
+      <thead><tr><th>الصورة</th><th>المادة</th><th>الصف</th><th>التاريخ</th><th>إجراء</th></tr></thead>
+      <tbody>${(data||[]).map(s=>`<tr>
+        <td>${s.image_url?`<img class="tbl-thumb" src="${s.image_url}" alt="">`:`<div class="tbl-thumb-ph">📚</div>`}</td>
+        <td><strong>${s.name_ar}</strong></td>
+        <td><span class="chip c-blue">${GRADES[s.grade_id]||s.grade_id}</span></td>
+        <td class="td-mono">${new Date(s.created_at).toLocaleDateString('ar-EG')}</td>
+        <td><button class="btn btn-danger btn-xs" onclick="delSubject('${s.id}','${s.name_ar}')">حذف</button></td>
+      </tr>`).join('')||'<tr><td colspan="5"><div class="empty-state"><div class="empty-ico">📚</div><div>لا توجد مواد</div></div></td></tr>'}
       </tbody>
     </table></div>
-  </div>`;
+  </div>`);
+}
+
+function previewImgField(input, previewId, dropId){
+  const file=input.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=e=>{const img=document.getElementById(previewId);img.src=e.target.result;img.style.display='block';};
+  reader.readAsDataURL(file);
 }
 
 async function addSubject(){
   const name=document.getElementById('sub-name').value.trim();
   const grade=document.getElementById('sub-grade').value;
-  if(!name||!grade)return toast('warning','بيانات ناقصة');
+  const file=document.getElementById('sub-img-file').files[0];
+  if(!name||!grade)return toast('w','ادخل اسم المادة والصف');
   const btn=document.getElementById('sub-btn');
-  btn.innerHTML='<span class="loader"></span>';btn.disabled=true;
-  const{error}=await sb.from('subjects').insert({name_ar:name,grade_id:parseInt(grade)});
-  if(error){toast('error','خطأ',error.message);btn.textContent='إضافة المادة';btn.disabled=false;return;}
-  toast('success','تم الإضافة!',`مادة "${name}" اتضافت`);
-  renderSubjects();
+  btn.innerHTML='<span class="ld"></span>';btn.disabled=true;
+  let img_url=null;
+  if(file){
+    try{
+      document.getElementById('sub-img-prog').style.display='block';
+      img_url=await uploadImage(file,'subjects','sub-img-bar');
+    }catch(e){toast('w','فشل رفع الصورة — سيتم الحفظ بدونها');}
+  }
+  const{error}=await sb.from('subjects').insert({name_ar:name,grade_id:parseInt(grade),image_url:img_url});
+  btn.textContent='إضافة المادة';btn.disabled=false;
+  if(error)return toast('e',error.message);
+  toast('s',`تم إضافة "${name}"`);renderSubjects();
 }
-async function deleteSubject(id,name){
-  const ok=await openDeleteModal(`حذف مادة "${name}"؟`);
+async function delSubject(id,name){
+  const ok=await confirmDel(`حذف مادة "${name}"؟ كل الشابترات والحصص المرتبطة هتتحذف.`);
   if(!ok)return;
   const{error}=await sb.from('subjects').delete().eq('id',id);
-  if(error)return toast('error','خطأ',error.message);
-  toast('success','تم الحذف!');renderSubjects();
+  if(error)return toast('e',error.message);
+  toast('s','تم الحذف');renderSubjects();
 }
 
+// ── TEACHERS ────────────────────────────────────────────────────────────────
 async function renderTeachers(){
-  const c=document.getElementById('mainContent');
-  const{data}=await sb.from('teachers').select('id,bio,created_at,profiles(full_name,phone,email)').order('created_at',{ascending:false});
-  c.innerHTML=`
-  <div class="panel">
-    <div class="panel-header"><span class="panel-title">إضافة مدرس جديد</span></div>
+  setContent('<div class="loading"><div class="ld"></div></div>');
+  const{data}=await sb.from('teachers').select('id,bio,created_at,profiles(full_name,phone,email,image_url)').order('created_at',{ascending:false});
+  setContent(`
+  <div class="panel glass">
+    <div class="panel-head"><span class="panel-title">➕ إضافة مدرس</span></div>
     <div class="panel-body">
-      <div class="form-row cols-3">
-        <div class="fw"><span class="flbl">الاسم</span><input class="inp" id="tch-name" placeholder="اسم المدرس"></div>
-        <div class="fw"><span class="flbl">البريد</span><input class="inp" id="tch-email" placeholder="teacher@email.com" dir="ltr"></div>
-        <div class="fw"><span class="flbl">كلمة سر مؤقتة</span><input class="inp" id="tch-pass" placeholder="سيغيرها لاحقاً" dir="ltr"></div>
+      <div class="form-row fr-3">
+        <div class="fw"><span class="fl">الاسم</span><input class="inp" id="tch-name" placeholder="اسم المدرس"></div>
+        <div class="fw"><span class="fl">البريد</span><input class="inp" id="tch-email" type="email" placeholder="teacher@email.com" dir="ltr"></div>
+        <div class="fw"><span class="fl">كلمة سر مؤقتة</span><input class="inp" id="tch-pass" placeholder="6 أحرف+" dir="ltr"></div>
       </div>
-      <div class="fw" style="margin-bottom:16px"><span class="flbl">نبذة (اختياري)</span><input class="inp" id="tch-bio" placeholder="تخصص المدرس..."></div>
+      <div class="fw" style="margin-bottom:10px"><span class="fl">نبذة (اختياري)</span><input class="inp" id="tch-bio" placeholder="تخصص المدرس..."></div>
+      <div class="fw" style="margin-bottom:14px"><span class="fl">صورة المدرس</span>
+        <div class="img-upload">
+          <input type="file" id="tch-img-file" accept="image/*" onchange="previewCircleImg(this,'tch-img-preview')">
+          <div class="img-upload-ico">👤</div>
+          <div class="img-upload-txt">اضغط لرفع صورة المدرس</div>
+          <div class="upload-progress" id="tch-img-prog" style="display:none"><div class="upload-bar" id="tch-img-bar"></div></div>
+          <img id="tch-img-preview" class="img-preview-circle" style="display:none">
+        </div>
+      </div>
       <button class="btn btn-primary" id="tch-btn" onclick="addTeacher()">إضافة المدرس</button>
     </div>
   </div>
-  <div class="panel">
-    <div class="panel-header"><span class="panel-title">كل المدرسين</span></div>
+  <div class="panel glass">
+    <div class="panel-head"><span class="panel-title">المدرسين (${(data||[]).length})</span></div>
     <div class="tbl-wrap"><table>
-      <thead><tr><th>الاسم</th><th>البريد</th><th>الموبايل</th><th>نبذة</th><th>التاريخ</th><th>إجراء</th></tr></thead>
-      <tbody>${(data||[]).length?data.map(t=>`
-        <tr>
+      <thead><tr><th>الصورة</th><th>الاسم</th><th>البريد</th><th>نبذة</th><th>التاريخ</th><th>إجراء</th></tr></thead>
+      <tbody>${(data||[]).map(t=>{
+        const av=t.profiles?.image_url
+          ?`<img class="tbl-av" src="${t.profiles.image_url}" alt="">`
+          :`<div class="tbl-av-placeholder">${(t.profiles?.full_name||'?')[0].toUpperCase()}</div>`;
+        return`<tr>
+          <td>${av}</td>
           <td><strong>${t.profiles?.full_name||'—'}</strong></td>
-          <td class="td-mono" style="direction:ltr">${t.profiles?.email||'—'}</td>
-          <td class="td-mono">${t.profiles?.phone||'—'}</td>
-          <td style="color:var(--muted);font-size:.82rem">${t.bio||'—'}</td>
+          <td class="td-mono" style="direction:ltr;font-size:.76rem">${t.profiles?.email||'—'}</td>
+          <td style="font-size:.8rem;color:var(--text3)">${t.bio||'—'}</td>
           <td class="td-mono">${new Date(t.created_at).toLocaleDateString('ar-EG')}</td>
-          <td><button class="btn btn-danger btn-sm" onclick="deleteTeacher('${t.id}','${t.profiles?.full_name||t.id}')">حذف</button></td>
-        </tr>`).join(''):`<tr><td colspan="6"><div class="empty"><div class="empty-icon">👨‍🏫</div><div class="empty-txt">لا يوجد مدرسين بعد</div></div></td></tr>`}
+          <td><button class="btn btn-danger btn-xs" onclick="delTeacher('${t.id}','${t.profiles?.full_name||t.id}')">حذف</button></td>
+        </tr>`;
+      }).join('')||'<tr><td colspan="6"><div class="empty-state"><div class="empty-ico">👨‍🏫</div><div>لا يوجد مدرسين</div></div></td></tr>'}
       </tbody>
     </table></div>
-  </div>`;
+  </div>`);
+}
+
+function previewCircleImg(input,previewId){
+  const file=input.files[0];if(!file)return;
+  const r=new FileReader();
+  r.onload=e=>{const img=document.getElementById(previewId);img.src=e.target.result;img.style.display='block';};
+  r.readAsDataURL(file);
 }
 
 async function addTeacher(){
@@ -641,479 +765,789 @@ async function addTeacher(){
   const email=document.getElementById('tch-email').value.trim();
   const pass=document.getElementById('tch-pass').value;
   const bio=document.getElementById('tch-bio').value.trim();
-  if(!name||!email||!pass)return toast('warning','بيانات ناقصة');
-  if(pass.length<6)return toast('warning','كلمة السر قصيرة','6 أحرف على الأقل');
+  const file=document.getElementById('tch-img-file').files[0];
+  if(!name||!email||!pass)return toast('w','الاسم والبريد وكلمة السر مطلوبين');
+  if(pass.length<6)return toast('w','كلمة السر 6 أحرف على الأقل');
   const btn=document.getElementById('tch-btn');
-  btn.innerHTML='<span class="loader"></span>';btn.disabled=true;
+  btn.innerHTML='<span class="ld"></span>';btn.disabled=true;
   const{data,error}=await sb.auth.signUp({email,password:pass,options:{data:{full_name:name}}});
-  if(error){toast('error','خطأ',error.message);btn.textContent='إضافة المدرس';btn.disabled=false;return;}
+  if(error){toast('e',error.message);btn.textContent='إضافة المدرس';btn.disabled=false;return;}
   const uid=data.user?.id;
-  if(!uid){toast('error','خطأ','مش قادر أنشئ الحساب');btn.textContent='إضافة المدرس';btn.disabled=false;return;}
-  const{error:pe}=await sb.from('profiles').insert({id:uid,full_name:name,role:'teacher',email:email});
-  const{error:te}=await sb.from('teachers').insert({id:uid,bio:bio||null});
+  if(!uid){toast('e','فشل إنشاء الحساب');btn.textContent='إضافة المدرس';btn.disabled=false;return;}
+  let img_url=null;
+  if(file){
+    try{document.getElementById('tch-img-prog').style.display='block';img_url=await uploadImage(file,'teachers','tch-img-bar');}
+    catch(e){toast('w','فشل رفع الصورة');}
+  }
+  await sb.from('profiles').insert({id:uid,full_name:name,role:'teacher',email,image_url:img_url});
+  await sb.from('teachers').insert({id:uid,bio:bio||null});
   btn.textContent='إضافة المدرس';btn.disabled=false;
-  if(pe||te)return toast('error','خطأ في الداتابيز',(pe||te).message);
-  toast('success','تم إضافة المدرس!',`حساب "${name}" اتنشئ`);
-  renderTeachers();
+  toast('s',`تم إضافة المدرس "${name}"`);renderTeachers();
 }
-async function deleteTeacher(id,name){
-  const ok=await openDeleteModal(`حذف المدرس "${name}"؟`);
-  if(!ok)return;
-  const{error}=await sb.from('teachers').delete().eq('id',id);
-  if(error)return toast('error','خطأ',error.message);
-  toast('success','تم الحذف!');renderTeachers();
+async function delTeacher(id,name){
+  const ok=await confirmDel(`حذف المدرس "${name}"؟`);if(!ok)return;
+  await sb.from('teachers').delete().eq('id',id);
+  toast('s','تم الحذف');renderTeachers();
 }
 
+// ── ADMIN CHAPTERS ──────────────────────────────────────────────────────────
 async function renderAdminChapters(){
-  const c=document.getElementById('mainContent');
+  setContent('<div class="loading"><div class="ld"></div></div>');
   const[{data:subs},{data:tchs},{data:chs}]=await Promise.all([
     sb.from('subjects').select('id,name_ar,grade_id').order('name_ar'),
     sb.from('teachers').select('id,profiles(full_name)'),
-    sb.from('chapters').select('id,title,description,created_at,created_by,subjects(name_ar),profiles(full_name)').order('created_at',{ascending:false}),
+    sb.from('chapters').select('id,title,description,created_at,image_url,created_by,subjects(name_ar),profiles(full_name)').order('created_at',{ascending:false}),
   ]);
-  c.innerHTML=`
-  <div class="panel">
-    <div class="panel-header"><span class="panel-title">إضافة شابتر جديد</span></div>
+  const subOpts=(subs||[]).map(s=>`<option value="${s.id}">${s.name_ar} — ${GRADES[s.grade_id]}</option>`).join('');
+  const tchOpts=(tchs||[]).map(t=>`<option value="${t.id}">${t.profiles?.full_name||t.id}</option>`).join('');
+  setContent(`
+  <div class="panel glass">
+    <div class="panel-head"><span class="panel-title">➕ إضافة شابتر</span></div>
     <div class="panel-body">
-      <div class="form-row cols-3">
-        <div class="fw"><span class="flbl">المادة</span>
-          <select class="inp" id="ch-subject" onchange="this.classList.add('hv')">
-            <option value="" disabled selected>اختار المادة</option>
-            ${(subs||[]).map(s=>`<option value="${s.id}">${s.name_ar} — ${GRADES[s.grade_id]||s.grade_id}</option>`).join('')}
+      <div class="form-row fr-3">
+        <div class="fw"><span class="fl">المادة</span>
+          <select class="inp" id="ch-sub" onchange="this.classList.add('hv')">
+            <option value="" disabled selected>اختار</option>${subOpts}
           </select>
         </div>
-        <div class="fw"><span class="flbl">المدرس</span>
-          <select class="inp" id="ch-teacher" onchange="this.classList.add('hv')">
-            <option value="" disabled selected>اختار المدرس</option>
-            ${(tchs||[]).map(t=>`<option value="${t.id}">${t.profiles?.full_name||t.id}</option>`).join('')}
+        <div class="fw"><span class="fl">المدرس</span>
+          <select class="inp" id="ch-tch" onchange="this.classList.add('hv')">
+            <option value="" disabled selected>اختار</option>${tchOpts}
           </select>
         </div>
-        <div class="fw"><span class="flbl">اسم الشابتر</span><input class="inp" id="ch-title" placeholder="الوحدة الأولى"></div>
+        <div class="fw"><span class="fl">اسم الشابتر</span><input class="inp" id="ch-title" placeholder="الوحدة الأولى"></div>
       </div>
-      <div class="fw" style="margin-bottom:16px"><span class="flbl">وصف (اختياري)</span><input class="inp" id="ch-desc" placeholder="محتوى الشابتر..."></div>
-      <button class="btn btn-primary" id="ch-btn" onclick="addAdminChapter()">إضافة الشابتر</button>
+      <div class="fw" style="margin-bottom:10px"><span class="fl">وصف (اختياري)</span><input class="inp" id="ch-desc" placeholder="..."></div>
+      <div class="fw" style="margin-bottom:14px"><span class="fl">صورة الشابتر</span>
+        <div class="img-upload">
+          <input type="file" id="ch-img-file" accept="image/*" onchange="previewImgField(this,'ch-img-preview')">
+          <div class="img-upload-ico">📖</div>
+          <div class="img-upload-txt">اضغط لرفع صورة الشابتر (ستظهر كـ Thumbnail)</div>
+          <div class="upload-progress" id="ch-img-prog" style="display:none"><div class="upload-bar" id="ch-img-bar"></div></div>
+          <img id="ch-img-preview" class="img-preview" style="display:none">
+        </div>
+      </div>
+      <button class="btn btn-primary" id="ch-btn" onclick="addChapter()">إضافة الشابتر</button>
     </div>
   </div>
-  <div class="panel">
-    <div class="panel-header"><span class="panel-title">كل الشابترات</span></div>
+  <div class="panel glass">
+    <div class="panel-head"><span class="panel-title">الشابترات (${(chs||[]).length})</span></div>
     <div class="tbl-wrap"><table>
-      <thead><tr><th>الشابتر</th><th>المادة</th><th>المدرس</th><th>أضافه</th><th>التاريخ</th><th>إجراء</th></tr></thead>
-      <tbody>${(chs||[]).length?chs.map(ch=>`
-        <tr>
-          <td><strong>${ch.title}</strong>${ch.description?`<div style="font-size:.78rem;color:var(--muted);margin-top:2px">${ch.description}</div>`:''}</td>
-          <td><span class="badge badge-gold">${ch.subjects?.name_ar||'—'}</span></td>
-          <td>${ch.profiles?.full_name||'—'}</td>
-          <td><span class="badge ${ch.created_by==='admin'?'badge-purple':'badge-green'}">${ch.created_by}</span></td>
-          <td class="td-mono">${new Date(ch.created_at).toLocaleDateString('ar-EG')}</td>
-          <td><button class="btn btn-danger btn-sm" onclick="deleteChapter('${ch.id}','${ch.title}')">حذف</button></td>
-        </tr>`).join(''):`<tr><td colspan="6"><div class="empty"><div class="empty-icon">📖</div><div class="empty-txt">لا توجد شابترات بعد</div></div></td></tr>`}
+      <thead><tr><th>الصورة</th><th>الشابتر</th><th>المادة</th><th>المدرس</th><th>أضافه</th><th>التاريخ</th><th>إجراء</th></tr></thead>
+      <tbody>${(chs||[]).map(ch=>`<tr>
+        <td>${ch.image_url?`<img class="tbl-thumb" src="${ch.image_url}" alt="">`:`<div class="tbl-thumb-ph">📖</div>`}</td>
+        <td><strong>${ch.title}</strong>${ch.description?`<div style="font-size:.74rem;color:var(--text3);margin-top:2px">${ch.description}</div>`:''}</td>
+        <td><span class="chip c-gold">${ch.subjects?.name_ar||'—'}</span></td>
+        <td>${ch.profiles?.full_name||'—'}</td>
+        <td><span class="chip ${ch.created_by==='admin'?'c-purple':'c-green'}">${ch.created_by}</span></td>
+        <td class="td-mono">${new Date(ch.created_at).toLocaleDateString('ar-EG')}</td>
+        <td><button class="btn btn-danger btn-xs" onclick="delChapter('${ch.id}','${ch.title}')">حذف</button></td>
+      </tr>`).join('')||'<tr><td colspan="7"><div class="empty-state"><div class="empty-ico">📖</div><div>لا توجد شابترات</div></div></td></tr>'}
       </tbody>
     </table></div>
-  </div>`;
+  </div>`);
 }
 
-async function addAdminChapter(){
-  const sid=document.getElementById('ch-subject').value;
-  const tid=document.getElementById('ch-teacher').value;
+async function addChapter(){
+  const sid=document.getElementById('ch-sub').value;
+  const tid=document.getElementById('ch-tch').value;
   const title=document.getElementById('ch-title').value.trim();
   const desc=document.getElementById('ch-desc').value.trim();
-  if(!sid||!tid||!title)return toast('warning','بيانات ناقصة');
+  const file=document.getElementById('ch-img-file').files[0];
+  if(!sid||!tid||!title)return toast('w','اختار المادة والمدرس وادخل اسم الشابتر');
   const btn=document.getElementById('ch-btn');
-  btn.innerHTML='<span class="loader"></span>';btn.disabled=true;
-  const{error}=await sb.from('chapters').insert({subject_id:sid,teacher_id:tid,title,description:desc||null,created_by:'admin'});
+  btn.innerHTML='<span class="ld"></span>';btn.disabled=true;
+  let img_url=null;
+  if(file){
+    try{document.getElementById('ch-img-prog').style.display='block';img_url=await uploadImage(file,'chapters','ch-img-bar');}
+    catch(e){toast('w','فشل رفع الصورة');}
+  }
+  const{error}=await sb.from('chapters').insert({subject_id:sid,teacher_id:tid,title,description:desc||null,image_url:img_url,created_by:'admin'});
   btn.textContent='إضافة الشابتر';btn.disabled=false;
-  if(error)return toast('error','خطأ',error.message);
-  toast('success','تم إضافة الشابتر!');renderAdminChapters();
+  if(error)return toast('e',error.message);
+  toast('s','تم إضافة الشابتر');renderAdminChapters();
 }
-async function deleteChapter(id,title){
-  const ok=await openDeleteModal(`حذف شابتر "${title}"؟`);
-  if(!ok)return;
-  const{error}=await sb.from('chapters').delete().eq('id',id);
-  if(error)return toast('error','خطأ',error.message);
-  toast('success','تم الحذف!');renderAdminChapters();
+async function delChapter(id,title){
+  const ok=await confirmDel(`حذف "${title}"؟`);if(!ok)return;
+  await sb.from('chapters').delete().eq('id',id);
+  toast('s','تم الحذف');renderAdminChapters();
 }
 
-async function renderStudents(){
-  const c=document.getElementById('mainContent');
-  const{data,count}=await sb.from('students').select('id,grade_id,created_at,profiles(full_name,phone)',{count:'exact'}).order('created_at',{ascending:false});
-  c.innerHTML=`
-  <div class="panel">
-    <div class="panel-header"><span class="panel-title">كل الطلاب</span><span class="badge badge-green">${count??0}</span></div>
+// ── LESSONS (ADMIN) ─────────────────────────────────────────────────────────
+async function renderAdminLessons(){
+  setContent('<div class="loading"><div class="ld"></div></div>');
+  const{data:chs}=await sb.from('chapters').select('id,title,subjects(name_ar)').order('title');
+  const{data:lessons}=await sb.from('lessons').select('id,title,code,is_active,scheduled_at,image_url,chapters(title,subjects(name_ar))').order('created_at',{ascending:false});
+  const chOpts=(chs||[]).map(c=>`<option value="${c.id}">${c.subjects?.name_ar||''} ← ${c.title}</option>`).join('');
+  setContent(`
+  <div class="panel glass">
+    <div class="panel-head"><span class="panel-title">➕ إضافة حصة</span></div>
+    <div class="panel-body">
+      <div class="form-row fr-2">
+        <div class="fw"><span class="fl">الشابتر</span>
+          <select class="inp" id="ls-ch" onchange="this.classList.add('hv')">
+            <option value="" disabled selected>اختار الشابتر</option>${chOpts}
+          </select>
+        </div>
+        <div class="fw"><span class="fl">عنوان الحصة</span><input class="inp" id="ls-title" placeholder="درس المشتقات"></div>
+      </div>
+      <div class="form-row fr-2">
+        <div class="fw"><span class="fl">كود الحصة</span>
+          <div style="display:flex;gap:6px">
+            <input class="inp" id="ls-code" placeholder="KW-XXXXX" dir="ltr" style="flex:1">
+            <button class="btn btn-glass btn-sm" onclick="genCode()">🎲</button>
+          </div>
+        </div>
+        <div class="fw"><span class="fl">وقت فتح الحصة</span><input class="inp" id="ls-time" type="datetime-local"></div>
+      </div>
+      <div class="fw" style="margin-bottom:10px"><span class="fl">وصف (اختياري)</span><input class="inp" id="ls-desc" placeholder="..."></div>
+      <div class="fw" style="margin-bottom:14px"><span class="fl">صورة الحصة (thumbnail)</span>
+        <div class="img-upload">
+          <input type="file" id="ls-img-file" accept="image/*" onchange="previewImgField(this,'ls-img-preview')">
+          <div class="img-upload-ico">🎬</div>
+          <div class="img-upload-txt">اضغط لرفع صورة الحصة</div>
+          <div class="upload-progress" id="ls-img-prog" style="display:none"><div class="upload-bar" id="ls-img-bar"></div></div>
+          <img id="ls-img-preview" class="img-preview" style="display:none">
+        </div>
+      </div>
+      <button class="btn btn-primary" id="ls-btn" onclick="addLesson()">إضافة الحصة</button>
+    </div>
+  </div>
+  <div class="panel glass">
+    <div class="panel-head"><span class="panel-title">الحصص (${(lessons||[]).length})</span></div>
     <div class="tbl-wrap"><table>
-      <thead><tr><th>الاسم</th><th>الصف</th><th>الموبايل</th><th>التسجيل</th></tr></thead>
-      <tbody>${(data||[]).length?data.map(s=>`
-        <tr>
-          <td><strong>${s.profiles?.full_name||'—'}</strong></td>
-          <td><span class="badge badge-green">${GRADES[s.grade_id]||s.grade_id}</span></td>
-          <td class="td-mono">${s.profiles?.phone||'—'}</td>
-          <td class="td-mono">${new Date(s.created_at).toLocaleDateString('ar-EG')}</td>
-        </tr>`).join(''):`<tr><td colspan="4"><div class="empty"><div class="empty-icon">🎓</div><div class="empty-txt">لا يوجد طلاب بعد</div></div></td></tr>`}
+      <thead><tr><th>الصورة</th><th>الحصة</th><th>الشابتر</th><th>الكود</th><th>الحالة</th><th>الوقت</th><th>إجراءات</th></tr></thead>
+      <tbody>${(lessons||[]).map(l=>`<tr>
+        <td>${l.image_url?`<img class="tbl-thumb" src="${l.image_url}">`:`<div class="tbl-thumb-ph">🎬</div>`}</td>
+        <td><strong>${l.title}</strong></td>
+        <td><span class="chip c-gold" style="font-size:.66rem">${l.chapters?.title||'—'}</span></td>
+        <td><span class="code-chip">${l.code}</span></td>
+        <td>
+          <button class="chip ${l.is_active?'c-green':'c-red'}" style="border:none;cursor:pointer" onclick="toggleLesson('${l.id}',${l.is_active})">
+            ${l.is_active?'✅ نشط':'⛔ مغلق'}
+          </button>
+        </td>
+        <td class="td-mono" style="font-size:.72rem">${l.scheduled_at?new Date(l.scheduled_at).toLocaleString('ar-EG',{dateStyle:'short',timeStyle:'short'}):'—'}</td>
+        <td>
+          <div style="display:flex;gap:5px;flex-wrap:wrap">
+            <button class="btn btn-gold btn-xs" onclick="openContent('${l.id}','${l.title}')">📋 محتوى</button>
+            <button class="btn btn-glass btn-xs" onclick="openCodesPanel('${l.id}','${l.title}')">🔑 أكواد</button>
+            <button class="btn btn-danger btn-xs" onclick="delLesson('${l.id}','${l.title}')">حذف</button>
+          </div>
+        </td>
+      </tr>`).join('')||'<tr><td colspan="7"><div class="empty-state"><div class="empty-ico">🎬</div><div>لا توجد حصص</div></div></td></tr>'}
       </tbody>
     </table></div>
-  </div>`;
+  </div>`);
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// TEACHER PAGES
-// ─────────────────────────────────────────────────────────────────────────────
+function genCode(){
+  const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code='KW-';
+  for(let i=0;i<6;i++)code+=c[Math.floor(Math.random()*c.length)];
+  document.getElementById('ls-code').value=code;
+}
+
+async function addLesson(){
+  const chId=document.getElementById('ls-ch').value;
+  const title=document.getElementById('ls-title').value.trim();
+  const code=document.getElementById('ls-code').value.trim().toUpperCase();
+  const time=document.getElementById('ls-time').value;
+  const desc=document.getElementById('ls-desc').value.trim();
+  const file=document.getElementById('ls-img-file').files[0];
+  if(!chId||!title||!code)return toast('w','الشابتر والعنوان والكود مطلوبين');
+  const btn=document.getElementById('ls-btn');
+  btn.innerHTML='<span class="ld"></span>';btn.disabled=true;
+  let img_url=null;
+  if(file){
+    try{document.getElementById('ls-img-prog').style.display='block';img_url=await uploadImage(file,'lessons','ls-img-bar');}
+    catch(e){toast('w','فشل رفع الصورة');}
+  }
+  const{error}=await sb.from('lessons').insert({chapter_id:chId,title,code,scheduled_at:time||null,description:desc||null,is_active:false,image_url:img_url});
+  btn.textContent='إضافة الحصة';btn.disabled=false;
+  if(error)return toast('e',error.message.includes('unique')?'الكود ده موجود قبل كده':error.message);
+  toast('s',`تم إضافة "${title}"`);renderAdminLessons();
+}
+async function toggleLesson(id,cur){
+  await sb.from('lessons').update({is_active:!cur}).eq('id',id);
+  toast('s',!cur?'الحصة نشطة الآن':'الحصة مغلقة الآن');renderAdminLessons();
+}
+async function delLesson(id,title){
+  const ok=await confirmDel(`حذف حصة "${title}"؟`);if(!ok)return;
+  await sb.from('lessons').delete().eq('id',id);
+  toast('s','تم الحذف');renderAdminLessons();
+}
+
+// ── STUDENTS ────────────────────────────────────────────────────────────────
+async function renderStudents(){
+  setContent('<div class="loading"><div class="ld"></div></div>');
+  const{data,count}=await sb.from('students').select('id,grade_id,created_at,profiles(full_name,phone,email)',{count:'exact'}).order('created_at',{ascending:false});
+  setContent(`
+  <div class="panel glass">
+    <div class="panel-head"><span class="panel-title">الطلاب</span><span class="chip c-green">${count??0}</span></div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>الاسم</th><th>البريد</th><th>الصف</th><th>الموبايل</th><th>التسجيل</th></tr></thead>
+      <tbody>${(data||[]).map(s=>`<tr>
+        <td><strong>${s.profiles?.full_name||'—'}</strong></td>
+        <td class="td-mono" style="direction:ltr;font-size:.76rem">${s.profiles?.email||'—'}</td>
+        <td><span class="chip c-green">${GRADES[s.grade_id]||s.grade_id}</span></td>
+        <td class="td-mono">${s.profiles?.phone||'—'}</td>
+        <td class="td-mono">${new Date(s.created_at).toLocaleDateString('ar-EG')}</td>
+      </tr>`).join('')||'<tr><td colspan="5"><div class="empty-state"><div class="empty-ico">🎓</div><div>لا يوجد طلاب</div></div></td></tr>'}
+      </tbody>
+    </table></div>
+  </div>`);
+}
+
+// ── TEACHER PAGES ────────────────────────────────────────────────────────────
 async function renderTeacherDash(){
-  const c=document.getElementById('mainContent');
-  const[{count:chs},{count:ls},{count:en}]=await Promise.all([
-    sb.from('chapters').select('*',{count:'exact',head:true}).eq('teacher_id',CURRENT_USER_ID),
-    sb.from('lessons').select('id',{count:'exact',head:true})
-      .in('chapter_id',(await sb.from('chapters').select('id').eq('teacher_id',CURRENT_USER_ID)).data?.map(x=>x.id)||['']),
-    sb.from('enrollments').select('*',{count:'exact',head:true}),
+  setContent('<div class="loading"><div class="ld"></div></div>');
+  const{data:myChs}=await sb.from('chapters').select('id').eq('teacher_id',ME.id);
+  const myChIds=(myChs||[]).map(c=>c.id);
+  const[{count:cc},{count:lc},{count:ec}]=await Promise.all([
+    sb.from('chapters').select('*',{count:'exact',head:true}).eq('teacher_id',ME.id),
+    myChIds.length?sb.from('lessons').select('*',{count:'exact',head:true}).in('chapter_id',myChIds):Promise.resolve({count:0}),
+    myChIds.length?sb.from('enrollments').select('*',{count:'exact',head:true}).in('lesson_id',(await sb.from('lessons').select('id').in('chapter_id',myChIds)).data?.map(x=>x.id)||['']):Promise.resolve({count:0}),
   ]);
-  c.innerHTML=`
-  <div class="stats-grid cols3">
-    <div class="stat-card s-gold"><div class="stat-icon">📖</div><div class="stat-num">${chs??0}</div><div class="stat-label">شابتراتي</div></div>
-    <div class="stat-card s-green"><div class="stat-icon">🎬</div><div class="stat-num">${ls??0}</div><div class="stat-label">حصصي</div></div>
-    <div class="stat-card s-blue"><div class="stat-icon">🎓</div><div class="stat-num">${en??0}</div><div class="stat-label">تسجيلات</div></div>
+  setContent(`
+  <div class="stats-grid" style="grid-template-columns:repeat(3,1fr)">
+    <div class="stat-card glass"><div class="stat-ico">📖</div><div class="stat-num">${cc??0}</div><div class="stat-lbl">شابتراتي</div></div>
+    <div class="stat-card glass"><div class="stat-ico">🎬</div><div class="stat-num">${lc??0}</div><div class="stat-lbl">حصصي</div></div>
+    <div class="stat-card glass"><div class="stat-ico">🎓</div><div class="stat-num">${ec??0}</div><div class="stat-lbl">تسجيلات</div></div>
   </div>
-  <div class="panel">
-    <div class="panel-header"><span class="panel-title">أحدث حصصي</span></div>
-    <div id="teacher-dash-lessons"><div class="empty"><div class="loader"></div></div></div>
-  </div>`;
-  // load recent lessons
-  const myChIds=(await sb.from('chapters').select('id').eq('teacher_id',CURRENT_USER_ID)).data?.map(x=>x.id)||[];
-  if(!myChIds.length){document.getElementById('teacher-dash-lessons').innerHTML=`<div class="empty"><div class="empty-icon">🎬</div><div class="empty-txt">لا توجد حصص بعد</div></div>`;return;}
-  const{data:ls2}=await sb.from('lessons').select('id,title,code,is_active,scheduled_at,chapters(title)').in('chapter_id',myChIds).order('created_at',{ascending:false}).limit(8);
+  <div class="panel glass">
+    <div class="panel-head"><span class="panel-title">أحدث حصصي</span></div>
+    <div id="teacher-dash-lessons"><div class="loading"><div class="ld"></div></div></div>
+  </div>`);
+  if(!myChIds.length){document.getElementById('teacher-dash-lessons').innerHTML='<div class="empty-state"><div class="empty-ico">📖</div><div>لا توجد شابترات بعد</div></div>';return;}
+  const{data:ls}=await sb.from('lessons').select('id,title,code,is_active,scheduled_at,chapters(title)').in('chapter_id',myChIds).order('created_at',{ascending:false}).limit(8);
   document.getElementById('teacher-dash-lessons').innerHTML=`<div class="tbl-wrap"><table>
     <thead><tr><th>الحصة</th><th>الشابتر</th><th>الكود</th><th>الحالة</th><th>الوقت</th></tr></thead>
-    <tbody>${(ls2||[]).map(l=>`
-      <tr>
-        <td><strong>${l.title}</strong></td>
-        <td>${l.chapters?.title||'—'}</td>
-        <td><span class="code-chip">${l.code}</span></td>
-        <td><span class="badge ${l.is_active?'badge-green':'badge-red'}">${l.is_active?'نشط':'مغلق'}</span></td>
-        <td class="td-mono">${l.scheduled_at?new Date(l.scheduled_at).toLocaleDateString('ar-EG'):'—'}</td>
-      </tr>`).join('')}
+    <tbody>${(ls||[]).map(l=>`<tr>
+      <td><strong>${l.title}</strong></td>
+      <td>${l.chapters?.title||'—'}</td>
+      <td><span class="code-chip">${l.code}</span></td>
+      <td><span class="chip ${l.is_active?'c-green':'c-red'}">${l.is_active?'نشط':'مغلق'}</span></td>
+      <td class="td-mono">${l.scheduled_at?new Date(l.scheduled_at).toLocaleString('ar-EG',{dateStyle:'short',timeStyle:'short'}):'—'}</td>
+    </tr>`).join('')||'<tr><td colspan="5"><div class="empty-state"><div>لا توجد حصص</div></div></td></tr>'}
     </tbody>
   </table></div>`;
 }
 
 async function renderMyChapters(){
-  const c=document.getElementById('mainContent');
-  const[{data:subs},{data:myChapters}]=await Promise.all([
+  setContent('<div class="loading"><div class="ld"></div></div>');
+  const[{data:subs},{data:myChs}]=await Promise.all([
     sb.from('subjects').select('id,name_ar,grade_id').order('name_ar'),
-    sb.from('chapters').select('id,title,description,created_at,subjects(name_ar,grade_id)').eq('teacher_id',CURRENT_USER_ID).order('created_at',{ascending:false}),
+    sb.from('chapters').select('id,title,description,image_url,created_at,subjects(name_ar,grade_id)').eq('teacher_id',ME.id).order('created_at',{ascending:false}),
   ]);
-  c.innerHTML=`
-  <div class="panel">
-    <div class="panel-header"><span class="panel-title">إضافة شابتر جديد</span></div>
+  const subOpts=(subs||[]).map(s=>`<option value="${s.id}">${s.name_ar} — ${GRADES[s.grade_id]}</option>`).join('');
+  setContent(`
+  <div class="panel glass">
+    <div class="panel-head"><span class="panel-title">➕ إضافة شابتر</span></div>
     <div class="panel-body">
-      <div class="form-row cols-2">
-        <div class="fw"><span class="flbl">المادة</span>
-          <select class="inp" id="mch-subject" onchange="this.classList.add('hv')">
-            <option value="" disabled selected>اختار المادة</option>
-            ${(subs||[]).map(s=>`<option value="${s.id}">${s.name_ar} — ${GRADES[s.grade_id]||s.grade_id}</option>`).join('')}
+      <div class="form-row fr-2">
+        <div class="fw"><span class="fl">المادة</span>
+          <select class="inp" id="mch-sub" onchange="this.classList.add('hv')">
+            <option value="" disabled selected>اختار</option>${subOpts}
           </select>
         </div>
-        <div class="fw"><span class="flbl">اسم الشابتر</span><input class="inp" id="mch-title" placeholder="مثال: الوحدة الأولى"></div>
+        <div class="fw"><span class="fl">اسم الشابتر</span><input class="inp" id="mch-title" placeholder="الوحدة الأولى"></div>
       </div>
-      <div class="fw" style="margin-bottom:16px"><span class="flbl">وصف (اختياري)</span><input class="inp" id="mch-desc" placeholder="محتوى الشابتر..."></div>
+      <div class="fw" style="margin-bottom:10px"><span class="fl">وصف</span><input class="inp" id="mch-desc" placeholder="..."></div>
+      <div class="fw" style="margin-bottom:14px"><span class="fl">صورة الشابتر</span>
+        <div class="img-upload">
+          <input type="file" id="mch-img-file" accept="image/*" onchange="previewImgField(this,'mch-img-preview')">
+          <div class="img-upload-ico">📖</div>
+          <div class="img-upload-txt">اضغط لرفع صورة الشابتر</div>
+          <div class="upload-progress" id="mch-img-prog" style="display:none"><div class="upload-bar" id="mch-img-bar"></div></div>
+          <img id="mch-img-preview" class="img-preview" style="display:none">
+        </div>
+      </div>
       <button class="btn btn-primary" id="mch-btn" onclick="addMyChapter()">إضافة الشابتر</button>
     </div>
   </div>
-  <div class="panel">
-    <div class="panel-header"><span class="panel-title">شابتراتي</span><span class="badge badge-gold">${(myChapters||[]).length}</span></div>
+  <div class="panel glass">
+    <div class="panel-head"><span class="panel-title">شابتراتي (${(myChs||[]).length})</span></div>
     <div class="tbl-wrap"><table>
-      <thead><tr><th>الشابتر</th><th>المادة</th><th>الصف</th><th>التاريخ</th><th>إجراء</th></tr></thead>
-      <tbody>${(myChapters||[]).length?myChapters.map(ch=>`
-        <tr>
-          <td><strong>${ch.title}</strong>${ch.description?`<div style="font-size:.78rem;color:var(--muted);margin-top:2px">${ch.description}</div>`:''}</td>
-          <td><span class="badge badge-gold">${ch.subjects?.name_ar||'—'}</span></td>
-          <td><span class="badge badge-blue">${GRADES[ch.subjects?.grade_id]||'—'}</span></td>
-          <td class="td-mono">${new Date(ch.created_at).toLocaleDateString('ar-EG')}</td>
-          <td><button class="btn btn-danger btn-sm" onclick="deleteMyChapter('${ch.id}','${ch.title}')">حذف</button></td>
-        </tr>`).join(''):`<tr><td colspan="5"><div class="empty"><div class="empty-icon">📖</div><div class="empty-txt">لا توجد شابترات بعد</div></div></td></tr>`}
+      <thead><tr><th>الصورة</th><th>الشابتر</th><th>المادة</th><th>الصف</th><th>التاريخ</th><th>إجراء</th></tr></thead>
+      <tbody>${(myChs||[]).map(ch=>`<tr>
+        <td>${ch.image_url?`<img class="tbl-thumb" src="${ch.image_url}">`:`<div class="tbl-thumb-ph">📖</div>`}</td>
+        <td><strong>${ch.title}</strong>${ch.description?`<div style="font-size:.74rem;color:var(--text3)">${ch.description}</div>`:''}</td>
+        <td><span class="chip c-gold">${ch.subjects?.name_ar||'—'}</span></td>
+        <td><span class="chip c-blue">${GRADES[ch.subjects?.grade_id]||'—'}</span></td>
+        <td class="td-mono">${new Date(ch.created_at).toLocaleDateString('ar-EG')}</td>
+        <td><button class="btn btn-danger btn-xs" onclick="delMyChapter('${ch.id}','${ch.title}')">حذف</button></td>
+      </tr>`).join('')||'<tr><td colspan="6"><div class="empty-state"><div class="empty-ico">📖</div><div>لا توجد شابترات</div></div></td></tr>'}
       </tbody>
     </table></div>
-  </div>`;
+  </div>`);
 }
 
 async function addMyChapter(){
-  const sid=document.getElementById('mch-subject').value;
+  const sid=document.getElementById('mch-sub').value;
   const title=document.getElementById('mch-title').value.trim();
   const desc=document.getElementById('mch-desc').value.trim();
-  if(!sid||!title)return toast('warning','بيانات ناقصة');
+  const file=document.getElementById('mch-img-file').files[0];
+  if(!sid||!title)return toast('w','اختار المادة وادخل اسم الشابتر');
   const btn=document.getElementById('mch-btn');
-  btn.innerHTML='<span class="loader"></span>';btn.disabled=true;
-  const{error}=await sb.from('chapters').insert({subject_id:sid,teacher_id:CURRENT_USER_ID,title,description:desc||null,created_by:'teacher'});
+  btn.innerHTML='<span class="ld"></span>';btn.disabled=true;
+  let img_url=null;
+  if(file){
+    try{document.getElementById('mch-img-prog').style.display='block';img_url=await uploadImage(file,'chapters','mch-img-bar');}
+    catch(e){toast('w','فشل رفع الصورة');}
+  }
+  const{error}=await sb.from('chapters').insert({subject_id:sid,teacher_id:ME.id,title,description:desc||null,image_url:img_url,created_by:'teacher'});
   btn.textContent='إضافة الشابتر';btn.disabled=false;
-  if(error)return toast('error','خطأ',error.message);
-  toast('success','تم إضافة الشابتر!');renderMyChapters();
+  if(error)return toast('e',error.message);
+  toast('s','تم إضافة الشابتر');renderMyChapters();
 }
-async function deleteMyChapter(id,title){
-  const ok=await openDeleteModal(`حذف شابتر "${title}"؟ كل الحصص هتتحذف معاه.`);
-  if(!ok)return;
-  const{error}=await sb.from('chapters').delete().eq('id',id).eq('teacher_id',CURRENT_USER_ID);
-  if(error)return toast('error','خطأ',error.message);
-  toast('success','تم الحذف!');renderMyChapters();
+async function delMyChapter(id,title){
+  const ok=await confirmDel(`حذف "${title}"؟`);if(!ok)return;
+  await sb.from('chapters').delete().eq('id',id).eq('teacher_id',ME.id);
+  toast('s','تم الحذف');renderMyChapters();
 }
 
 async function renderMyLessons(){
-  const c=document.getElementById('mainContent');
-  const{data:myChapters}=await sb.from('chapters').select('id,title').eq('teacher_id',CURRENT_USER_ID).order('title');
-  const myChIds=(myChapters||[]).map(x=>x.id);
+  setContent('<div class="loading"><div class="ld"></div></div>');
+  const{data:myChs}=await sb.from('chapters').select('id,title').eq('teacher_id',ME.id).order('title');
+  const myChIds=(myChs||[]).map(c=>c.id);
   let lessons=[];
-  if(myChIds.length){
-    const{data}=await sb.from('lessons').select('id,title,code,is_active,scheduled_at,chapter_id,chapters(title)').in('chapter_id',myChIds).order('created_at',{ascending:false});
-    lessons=data||[];
-  }
-  // populate chapter select in modal
-  document.getElementById('lesson-chapter').innerHTML=`<option value="" disabled selected>اختار الشابتر</option>`+
-    (myChapters||[]).map(ch=>`<option value="${ch.id}">${ch.title}</option>`).join('');
-
-  c.innerHTML=`
-  <div style="margin-bottom:16px;display:flex;justify-content:flex-start">
-    <button class="btn btn-primary" onclick="openLessonModal()">➕ إضافة حصة جديدة</button>
-  </div>
-  <div class="panel">
-    <div class="panel-header"><span class="panel-title">كل حصصي</span><span class="badge badge-green">${lessons.length}</span></div>
-    <div class="tbl-wrap"><table>
-      <thead><tr><th>الحصة</th><th>الشابتر</th><th>الكود</th><th>الحالة</th><th>الوقت</th><th>إجراءات</th></tr></thead>
-      <tbody>${lessons.length?lessons.map(l=>`
-        <tr>
-          <td><strong>${l.title}</strong></td>
-          <td>${l.chapters?.title||'—'}</td>
-          <td><span class="code-chip">${l.code}</span></td>
-          <td>
-            <button class="badge ${l.is_active?'badge-green':'badge-red'}" style="border:none;cursor:pointer" onclick="toggleLesson('${l.id}',${l.is_active})">
-              ${l.is_active?'✅ نشط':'⛔ مغلق'}
-            </button>
-          </td>
-          <td class="td-mono">${l.scheduled_at?new Date(l.scheduled_at).toLocaleString('ar-EG'):'—'}</td>
-          <td style="display:flex;gap:6px;flex-wrap:wrap">
-            <button class="btn btn-gold btn-sm" onclick="openContentModal('${l.id}','${l.title}')">📋 محتوى</button>
-            <button class="btn btn-ghost btn-sm" onclick="openCodesModal('${l.id}','${l.title}')">🔑 أكواد</button>
-            <button class="btn btn-danger btn-sm" onclick="deleteLesson('${l.id}','${l.title}')">حذف</button>
-          </td>
-        </tr>`).join(''):`<tr><td colspan="6"><div class="empty"><div class="empty-icon">🎬</div><div class="empty-txt">لا توجد حصص بعد — ابدأ بإضافة حصة</div></div></td></tr>`}
-      </tbody>
-    </table></div>
-  </div>`;
-}
-
-// Lesson Modal
-function openLessonModal(){
-  document.getElementById('lesson-title').value='';
-  document.getElementById('lesson-code').value='';
-  document.getElementById('lesson-time').value='';
-  document.getElementById('lesson-desc').value='';
-  document.getElementById('lessonModal').classList.add('show');
-}
-function genCode(){
-  const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let code='KW-';
-  for(let i=0;i<6;i++)code+=chars[Math.floor(Math.random()*chars.length)];
-  document.getElementById('lesson-code').value=code;
-}
-async function saveLesson(){
-  const chapterId=document.getElementById('lesson-chapter').value;
-  const title=document.getElementById('lesson-title').value.trim();
-  const code=document.getElementById('lesson-code').value.trim().toUpperCase();
-  const time=document.getElementById('lesson-time').value;
-  const desc=document.getElementById('lesson-desc').value.trim();
-  if(!chapterId||!title||!code)return toast('warning','بيانات ناقصة','الشابتر والعنوان والكود مطلوبين');
-  const btn=document.getElementById('lesson-save-btn');
-  btn.innerHTML='<span class="loader"></span>';btn.disabled=true;
-  const{error}=await sb.from('lessons').insert({
-    chapter_id:chapterId,title,code,
-    scheduled_at:time||null,description:desc||null,is_active:false
-  });
-  btn.textContent='حفظ الحصة';btn.disabled=false;
-  if(error)return toast('error','خطأ',error.message.includes('unique')?'الكود ده مستخدم قبل كده':error.message);
-  toast('success','تم إضافة الحصة!',`كود الحصة: ${code}`);
-  closeModal('lessonModal');
-  renderMyLessons();
-}
-async function toggleLesson(id,current){
-  const{error}=await sb.from('lessons').update({is_active:!current}).eq('id',id);
-  if(error)return toast('error','خطأ',error.message);
-  toast('success',!current?'الحصة نشطة دلوقتي':'الحصة اتقفلت');
-  renderMyLessons();
-}
-async function deleteLesson(id,title){
-  const ok=await openDeleteModal(`حذف حصة "${title}"؟`);
-  if(!ok)return;
-  const{error}=await sb.from('lessons').delete().eq('id',id);
-  if(error)return toast('error','خطأ',error.message);
-  toast('success','تم الحذف!');renderMyLessons();
-}
-
-// Content Modal
-let _activeType='youtube';
-function switchType(type){
-  _activeType=type;
-  document.querySelectorAll('.type-tab').forEach(t=>t.classList.toggle('active',t.textContent.toLowerCase().includes(type)||t.onclick.toString().includes(type)));
-  document.querySelectorAll('.type-panel').forEach(p=>p.classList.toggle('active',p.id===`type-${type}`));
-}
-async function openContentModal(lessonId,lessonTitle){
-  _activeContentLessonId=lessonId;
-  document.getElementById('contentModalSub').textContent=`حصة: ${lessonTitle}`;
-  document.getElementById('contentModal').classList.add('show');
-  loadExistingContent(lessonId);
-}
-async function loadExistingContent(lessonId){
-  const ec=document.getElementById('existing-content');
-  ec.innerHTML='<div class="loader"></div>';
-  const{data}=await sb.from('lesson_content').select('*').eq('lesson_id',lessonId).order('sort_order');
-  if(!data?.length){ec.innerHTML='<div style="color:var(--muted);font-size:.82rem;text-align:center;padding:10px">لا يوجد محتوى بعد</div>';return;}
-  const icons={youtube:'🎥',pdf:'📄',image:'🖼️',text:'📝'};
-  ec.innerHTML=`<div style="font-size:.72rem;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px">المحتوى الحالي</div>`+
-    data.map(ct=>`
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:var(--r-sm);gap:8px">
-      <div style="display:flex;align-items:center;gap:8px">
-        <span>${icons[ct.type]||'📌'}</span>
-        <div>
-          <div style="font-size:.85rem;font-weight:600">${ct.title||ct.type}</div>
-          ${ct.url?`<div style="font-size:.72rem;color:var(--muted);direction:ltr">${ct.url.substring(0,40)}...</div>`:''}
+  if(myChIds.length){const{data}=await sb.from('lessons').select('id,title,code,is_active,scheduled_at,image_url,chapters(title)').in('chapter_id',myChIds).order('created_at',{ascending:false});lessons=data||[];}
+  const chOpts=(myChs||[]).map(c=>`<option value="${c.id}">${c.title}</option>`).join('');
+  setContent(`
+  <div class="panel glass">
+    <div class="panel-head"><span class="panel-title">➕ إضافة حصة</span></div>
+    <div class="panel-body">
+      <div class="form-row fr-2">
+        <div class="fw"><span class="fl">الشابتر</span>
+          <select class="inp" id="mls-ch" onchange="this.classList.add('hv')">
+            <option value="" disabled selected>اختار</option>${chOpts}
+          </select>
+        </div>
+        <div class="fw"><span class="fl">عنوان الحصة</span><input class="inp" id="mls-title" placeholder="درس المشتقات"></div>
+      </div>
+      <div class="form-row fr-2">
+        <div class="fw"><span class="fl">كود الحصة</span>
+          <div style="display:flex;gap:6px">
+            <input class="inp" id="mls-code" placeholder="KW-XXXXX" dir="ltr" style="flex:1">
+            <button class="btn btn-glass btn-sm" onclick="genCode2()">🎲</button>
+          </div>
+        </div>
+        <div class="fw"><span class="fl">وقت الحصة</span><input class="inp" id="mls-time" type="datetime-local"></div>
+      </div>
+      <div class="fw" style="margin-bottom:10px"><span class="fl">وصف</span><input class="inp" id="mls-desc" placeholder="..."></div>
+      <div class="fw" style="margin-bottom:14px"><span class="fl">صورة الحصة</span>
+        <div class="img-upload">
+          <input type="file" id="mls-img-file" accept="image/*" onchange="previewImgField(this,'mls-img-preview')">
+          <div class="img-upload-ico">🎬</div>
+          <div class="img-upload-txt">اضغط لرفع صورة الحصة</div>
+          <div class="upload-progress" id="mls-img-prog" style="display:none"><div class="upload-bar" id="mls-img-bar"></div></div>
+          <img id="mls-img-preview" class="img-preview" style="display:none">
         </div>
       </div>
-      <button class="btn btn-danger btn-sm" onclick="deleteContent('${ct.id}','${_activeContentLessonId}','${lessonId}')">حذف</button>
+      <button class="btn btn-primary" id="mls-btn" onclick="addMyLesson()">إضافة الحصة</button>
+    </div>
+  </div>
+  <div class="panel glass">
+    <div class="panel-head"><span class="panel-title">حصصي (${lessons.length})</span></div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>الصورة</th><th>الحصة</th><th>الشابتر</th><th>الكود</th><th>الحالة</th><th>الوقت</th><th>إجراءات</th></tr></thead>
+      <tbody>${lessons.map(l=>`<tr>
+        <td>${l.image_url?`<img class="tbl-thumb" src="${l.image_url}">`:`<div class="tbl-thumb-ph">🎬</div>`}</td>
+        <td><strong>${l.title}</strong></td>
+        <td><span class="chip c-gold" style="font-size:.66rem">${l.chapters?.title||'—'}</span></td>
+        <td><span class="code-chip">${l.code}</span></td>
+        <td><button class="chip ${l.is_active?'c-green':'c-red'}" style="border:none;cursor:pointer" onclick="toggleLesson2('${l.id}',${l.is_active})">${l.is_active?'✅ نشط':'⛔ مغلق'}</button></td>
+        <td class="td-mono" style="font-size:.72rem">${l.scheduled_at?new Date(l.scheduled_at).toLocaleString('ar-EG',{dateStyle:'short',timeStyle:'short'}):'—'}</td>
+        <td>
+          <div style="display:flex;gap:5px;flex-wrap:wrap">
+            <button class="btn btn-gold btn-xs" onclick="openContent('${l.id}','${l.title}')">📋 محتوى</button>
+            <button class="btn btn-glass btn-xs" onclick="openCodesPanel('${l.id}','${l.title}')">🔑 أكواد</button>
+            <button class="btn btn-danger btn-xs" onclick="delMyLesson('${l.id}','${l.title}')">حذف</button>
+          </div>
+        </td>
+      </tr>`).join('')||'<tr><td colspan="7"><div class="empty-state"><div class="empty-ico">🎬</div><div>لا توجد حصص</div></div></td></tr>'}
+      </tbody>
+    </table></div>
+  </div>`);
+}
+function genCode2(){
+  const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';let code='KW-';
+  for(let i=0;i<6;i++)code+=c[Math.floor(Math.random()*c.length)];
+  document.getElementById('mls-code').value=code;
+}
+async function addMyLesson(){
+  const chId=document.getElementById('mls-ch').value;
+  const title=document.getElementById('mls-title').value.trim();
+  const code=document.getElementById('mls-code').value.trim().toUpperCase();
+  const time=document.getElementById('mls-time').value;
+  const desc=document.getElementById('mls-desc').value.trim();
+  const file=document.getElementById('mls-img-file').files[0];
+  if(!chId||!title||!code)return toast('w','الشابتر والعنوان والكود مطلوبين');
+  const btn=document.getElementById('mls-btn');
+  btn.innerHTML='<span class="ld"></span>';btn.disabled=true;
+  let img_url=null;
+  if(file){try{document.getElementById('mls-img-prog').style.display='block';img_url=await uploadImage(file,'lessons','mls-img-bar');}catch(e){toast('w','فشل رفع الصورة');}}
+  const{error}=await sb.from('lessons').insert({chapter_id:chId,title,code,scheduled_at:time||null,description:desc||null,is_active:false,image_url:img_url});
+  btn.textContent='إضافة الحصة';btn.disabled=false;
+  if(error)return toast('e',error.message.includes('unique')?'الكود ده موجود':error.message);
+  toast('s',`تم إضافة "${title}"`);renderMyLessons();
+}
+async function toggleLesson2(id,cur){await sb.from('lessons').update({is_active:!cur}).eq('id',id);toast('s',!cur?'الحصة نشطة':'الحصة مغلقة');renderMyLessons();}
+async function delMyLesson(id,title){
+  const ok=await confirmDel(`حذف "${title}"؟`);if(!ok)return;
+  await sb.from('lessons').delete().eq('id',id);toast('s','تم الحذف');renderMyLessons();
+}
+
+// ── CONTENT MODAL ────────────────────────────────────────────────────────────
+let _curCT='video';
+function swCT(type){
+  _curCT=type;
+  document.querySelectorAll('.ct-tab').forEach((t,i)=>{
+    const types=['video','exam','homework','pdf','image','text'];
+    t.classList.toggle('on',types[i]===type);
+  });
+  document.querySelectorAll('.ct-panel').forEach(p=>p.classList.toggle('on',p.id===`ct-${type}`));
+  if(type==='exam')loadExamBuilder();
+  if(type==='homework')loadHomework();
+  if(type==='video')loadVideoParts();
+}
+
+async function openContent(lessonId,lessonTitle){
+  _activeLessonId=lessonId;_activeLessonTitle=lessonTitle;
+  document.getElementById('contentMoTitle').textContent=`📋 ${lessonTitle}`;
+  _options=[];_optionCount=0;_qImgUrl='';_examId=null;
+  document.getElementById('options-builder').innerHTML='';
+  document.getElementById('questions-list').innerHTML='';
+  openMo('contentMo');
+  swCT('video');
+}
+
+// VIDEO PARTS
+async function loadVideoParts(){
+  const el=document.getElementById('video-parts-list');
+  el.innerHTML='<div class="loading"><div class="ld"></div></div>';
+  const{data}=await sb.from('lesson_videos').select('*').eq('lesson_id',_activeLessonId).order('sort_order');
+  if(!data?.length){el.innerHTML='<div style="color:var(--text3);font-size:.82rem;text-align:center;padding:12px">لا توجد أجزاء بعد — أضف من الأعلى</div>';return;}
+  el.innerHTML=data.map((v,i)=>`
+    <div class="video-part">
+      <div class="vp-num">${i+1}</div>
+      <div style="flex:1">
+        <div style="font-weight:700;font-size:.88rem">${v.title}</div>
+        <div style="font-size:.72rem;color:var(--text3);direction:ltr;margin-top:2px">${v.youtube_url}</div>
+      </div>
+      <button class="btn btn-danger btn-xs" onclick="delVideoPart('${v.id}')">حذف</button>
     </div>`).join('');
 }
-async function addContent(){
-  if(!_activeContentLessonId)return;
-  const type=_activeType;
+async function addVideoPart(){
+  const title=document.getElementById('vp-title').value.trim();
+  const url=document.getElementById('vp-url').value.trim();
+  if(!title||!url)return toast('w','ادخل الاسم والرابط');
+  const{data:existing}=await sb.from('lesson_videos').select('sort_order').eq('lesson_id',_activeLessonId).order('sort_order',{ascending:false}).limit(1);
+  const nextOrder=(existing?.[0]?.sort_order??-1)+1;
+  const{error}=await sb.from('lesson_videos').insert({lesson_id:_activeLessonId,title,youtube_url:url,sort_order:nextOrder});
+  if(error)return toast('e',error.message);
+  document.getElementById('vp-title').value='';document.getElementById('vp-url').value='';
+  toast('s','تم إضافة الجزء');loadVideoParts();
+}
+async function delVideoPart(id){
+  await sb.from('lesson_videos').delete().eq('id',id);
+  toast('s','تم الحذف');loadVideoParts();
+}
+
+// EXAM BUILDER
+async function loadExamBuilder(){
+  // check if exam exists for this lesson
+  const{data:ex}=await sb.from('exams').select('id,title,duration_minutes,scheduled_at').eq('lesson_id',_activeLessonId).single();
+  if(ex){
+    _examId=ex.id;
+    document.getElementById('ex-title').value=ex.title||'';
+    document.getElementById('ex-dur').value=ex.duration_minutes||'';
+    if(ex.scheduled_at)document.getElementById('ex-time').value=ex.scheduled_at.slice(0,16);
+  }
+  loadQuestions();
+}
+async function loadQuestions(){
+  if(!_examId)return;
+  const{data}=await sb.from('exam_questions').select('*').eq('exam_id',_examId).order('sort_order');
+  const list=document.getElementById('questions-list');
+  if(!data?.length){list.innerHTML='<div style="color:var(--text3);font-size:.82rem;text-align:center;padding:12px">لا توجد أسئلة بعد</div>';return;}
+  list.innerHTML=data.map((q,i)=>{
+    const opts=Array.isArray(q.options)?q.options:[];
+    return`<div class="question-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span class="question-num">سؤال ${i+1}</span>
+        <button class="btn btn-danger btn-xs" onclick="delQuestion('${q.id}')">حذف</button>
+      </div>
+      ${q.image_url?`<img src="${q.image_url}" style="width:100%;max-height:120px;object-fit:contain;border-radius:8px;margin-bottom:8px">`:''}
+      <div style="font-weight:700;font-size:.9rem;margin-bottom:10px">${q.question_text}</div>
+      <div class="options-grid">
+        ${opts.map((o,oi)=>`<div class="option-row${o.is_correct?' correct':''}">
+          <div class="option-circle">${o.is_correct?'✓':String.fromCharCode(65+oi)}</div>
+          <span style="font-size:.82rem">${o.text}</span>
+        </div>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// Options builder
+function addOption(){
+  if(_options.length>=10)return toast('w','الحد الأقصى 10 خيارات');
+  const idx=_options.length;
+  _options.push({text:'',is_correct:false});
+  const div=document.createElement('div');
+  div.className='option-row';div.id=`opt-${idx}`;
+  div.innerHTML=`
+    <div class="option-circle" id="opt-circle-${idx}" onclick="setCorrect(${idx})">${String.fromCharCode(65+idx)}</div>
+    <input class="inp" style="flex:1;padding:6px 10px" placeholder="نص الخيار..." oninput="_options[${idx}].text=this.value">
+    <button class="btn btn-danger btn-xs" onclick="removeOption(${idx})">×</button>`;
+  document.getElementById('options-builder').appendChild(div);
+}
+function setCorrect(idx){
+  _options.forEach((o,i)=>{o.is_correct=(i===idx);});
+  document.querySelectorAll('.option-row').forEach((row,i)=>{
+    row.classList.toggle('correct',i===idx);
+    const circle=document.getElementById(`opt-circle-${i}`);
+    if(circle)circle.textContent=i===idx?'✓':String.fromCharCode(65+i);
+  });
+}
+function removeOption(idx){
+  _options.splice(idx,1);
+  // rebuild
+  const builder=document.getElementById('options-builder');
+  const rows=[...builder.querySelectorAll('.option-row')];
+  rows[idx]?.remove();
+  // renumber
+  _options.forEach((o,i)=>{
+    const circle=document.getElementById(`opt-circle-${i}`);
+    if(circle)circle.textContent=o.is_correct?'✓':String.fromCharCode(65+i);
+  });
+}
+
+function previewQImg(input){
+  const file=input.files[0];if(!file)return;
+  const r=new FileReader();
+  r.onload=e=>{const img=document.getElementById('q-img-preview');img.src=e.target.result;img.style.display='block';};
+  r.readAsDataURL(file);
+}
+
+async function addQuestion(){
+  const qText=document.getElementById('q-text').value.trim();
+  if(!qText)return toast('w','ادخل نص السؤال');
+  if(_options.length<2)return toast('w','ادخل خيارين على الأقل');
+  if(!_options.some(o=>o.is_correct))return toast('w','اختار الإجابة الصحيحة');
+  if(_options.some(o=>!o.text.trim()))return toast('w','ادخل نص كل الخيارات');
+
+  const btn=document.getElementById('add-q-btn');
+  btn.innerHTML='<span class="ld"></span>';btn.disabled=true;
+
+  // create exam if not exists
+  if(!_examId){
+    const title=document.getElementById('ex-title').value.trim()||_activeLessonTitle;
+    const dur=document.getElementById('ex-dur').value;
+    const time=document.getElementById('ex-time').value;
+    const{data:ex,error}=await sb.from('exams').insert({lesson_id:_activeLessonId,title,duration_minutes:dur?parseInt(dur):null,scheduled_at:time||null}).select().single();
+    if(error){toast('e',error.message);btn.textContent='حفظ السؤال';btn.disabled=false;return;}
+    _examId=ex.id;
+  } else {
+    // update exam settings
+    const title=document.getElementById('ex-title').value.trim();
+    const dur=document.getElementById('ex-dur').value;
+    const time=document.getElementById('ex-time').value;
+    if(title)await sb.from('exams').update({title,duration_minutes:dur?parseInt(dur):null,scheduled_at:time||null}).eq('id',_examId);
+  }
+
+  // upload question image if exists
+  let qImgUrl=null;
+  const qImgFile=document.getElementById('q-img-file').files[0];
+  if(qImgFile){
+    try{
+      document.getElementById('q-img-prog').style.display='block';
+      qImgUrl=await uploadImage(qImgFile,'exam-questions','q-img-bar');
+    }catch(e){toast('w','فشل رفع صورة السؤال');}
+  }
+
+  // get next sort_order
+  const{data:existing}=await sb.from('exam_questions').select('sort_order').eq('exam_id',_examId).order('sort_order',{ascending:false}).limit(1);
+  const nextOrder=(existing?.[0]?.sort_order??-1)+1;
+
+  // save question with jsonb options
+  const{error}=await sb.from('exam_questions').insert({
+    exam_id:_examId,
+    question_text:qText,
+    image_url:qImgUrl,
+    options:JSON.stringify(_options),
+    correct_option:'a', // kept for compat, actual answer in options jsonb
+    sort_order:nextOrder,
+    option_a:_options[0]?.text||'',
+    option_b:_options[1]?.text||'',
+    option_c:_options[2]?.text||null,
+    option_d:_options[3]?.text||null,
+  });
+
+  btn.textContent='حفظ السؤال';btn.disabled=false;
+  if(error)return toast('e',error.message);
+
+  // reset question form
+  document.getElementById('q-text').value='';
+  document.getElementById('q-img-file').value='';
+  document.getElementById('q-img-preview').style.display='none';
+  document.getElementById('q-img-prog').style.display='none';
+  document.getElementById('options-builder').innerHTML='';
+  _options=[];
+
+  toast('s','تم إضافة السؤال');loadQuestions();
+}
+async function delQuestion(id){
+  await sb.from('exam_questions').delete().eq('id',id);
+  toast('s','تم الحذف');loadQuestions();
+}
+
+// HOMEWORK
+async function loadHomework(){
+  const{data}=await sb.from('homework').select('*').eq('lesson_id',_activeLessonId).order('created_at',{ascending:false});
+  const list=document.getElementById('hw-list');
+  if(!data?.length){list.innerHTML='<div style="color:var(--text3);font-size:.82rem;text-align:center;padding:12px">لا يوجد واجبات</div>';return;}
+  list.innerHTML=data.map(h=>`
+    <div style="padding:12px;border:1px solid var(--glass-border);border-radius:var(--r-sm);margin-bottom:8px;background:var(--glass-bg)">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <strong>${h.title}</strong>
+        <button class="btn btn-danger btn-xs" onclick="delHomework('${h.id}')">حذف</button>
+      </div>
+      ${h.description?`<div style="font-size:.8rem;color:var(--text3);margin-top:4px">${h.description}</div>`:''}
+      ${h.due_date?`<div style="font-size:.72rem;color:var(--gold);margin-top:4px">📅 ${new Date(h.due_date).toLocaleString('ar-EG',{dateStyle:'short',timeStyle:'short'})}</div>`:''}
+    </div>`).join('');
+}
+async function saveHomework(){
+  const title=document.getElementById('hw-title').value.trim();
+  const desc=document.getElementById('hw-desc').value.trim();
+  const due=document.getElementById('hw-due').value;
+  const pdf=document.getElementById('hw-pdf').value.trim();
+  if(!title)return toast('w','ادخل عنوان الواجب');
+  const{error}=await sb.from('homework').insert({lesson_id:_activeLessonId,title,description:desc||null,due_date:due||null,pdf_url:pdf||null});
+  if(error)return toast('e',error.message);
+  document.getElementById('hw-title').value='';document.getElementById('hw-desc').value='';document.getElementById('hw-due').value='';document.getElementById('hw-pdf').value='';
+  toast('s','تم حفظ الواجب');loadHomework();
+}
+async function delHomework(id){
+  await sb.from('homework').delete().eq('id',id);toast('s','تم الحذف');loadHomework();
+}
+
+// PDF/IMAGE/TEXT
+async function addContent(type){
   let url='',title='',body='';
-  if(type==='youtube'){url=document.getElementById('ct-youtube-url').value.trim();title=document.getElementById('ct-youtube-title').value.trim();}
-  else if(type==='pdf'){url=document.getElementById('ct-pdf-url').value.trim();title=document.getElementById('ct-pdf-title').value.trim();}
-  else if(type==='image'){url=document.getElementById('ct-image-url').value.trim();title=document.getElementById('ct-image-title').value.trim();}
-  else if(type==='text'){body=document.getElementById('ct-text-body').value.trim();}
-  if(!url&&!body)return toast('warning','ادخل المحتوى');
-  const btn=document.getElementById('ct-add-btn');
-  btn.innerHTML='<span class="loader"></span>';btn.disabled=true;
-  const{error}=await sb.from('lesson_content').insert({lesson_id:_activeContentLessonId,type,url:url||null,title:title||null,body:body||null});
-  btn.textContent='إضافة المحتوى';btn.disabled=false;
-  if(error)return toast('error','خطأ',error.message);
-  toast('success','تم إضافة المحتوى!');
-  // clear fields
-  ['ct-youtube-url','ct-youtube-title','ct-pdf-url','ct-pdf-title','ct-image-url','ct-image-title','ct-text-body'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
-  loadExistingContent(_activeContentLessonId);
-}
-async function deleteContent(contentId,lessonId){
-  const ok=await openDeleteModal('حذف هذا المحتوى؟');
-  if(!ok)return;
-  const{error}=await sb.from('lesson_content').delete().eq('id',contentId);
-  if(error)return toast('error','خطأ',error.message);
-  toast('success','تم الحذف!');
-  loadExistingContent(lessonId);
+  if(type==='pdf'){url=document.getElementById('pdf-url').value.trim();title=document.getElementById('pdf-title').value.trim();}
+  if(type==='image'){url=document.getElementById('img-url').value.trim();title=document.getElementById('img-title').value.trim();}
+  if(type==='text'){body=document.getElementById('txt-body').value.trim();}
+  if(!url&&!body)return toast('w','ادخل المحتوى');
+  const{error}=await sb.from('lesson_content').insert({lesson_id:_activeLessonId,type,url:url||null,title:title||null,body:body||null});
+  if(error)return toast('e',error.message);
+  toast('s','تم إضافة المحتوى');
+  ['pdf-url','pdf-title','img-url','img-title','txt-body'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
 }
 
-// ── Codes System ──────────────────────────────────────────────────────────────
-let _activeCodesLessonId = null;
-let _allCodes = [];
-let _codesFilter = 'all';
+// ── CODES PANEL (inline in main) ─────────────────────────────────────────────
+async function openCodesPanel(lessonId,lessonTitle){
+  _activeLessonId=lessonId;
+  const c=document.getElementById('mainContent');
+  c.innerHTML='<div class="loading"><div class="ld"></div></div>';
 
-async function openCodesModal(lessonId, lessonTitle){
-  _activeCodesLessonId = lessonId;
-  document.getElementById('codesModalSub').textContent = `حصة: ${lessonTitle}`;
-  document.getElementById('codesModal').classList.add('show');
-  await loadCodes();
-}
+  const{data:codes}=await sb.from('lesson_codes')
+    .select('id,code,used_at,used_by,created_at,students(profiles(full_name,phone))')
+    .eq('lesson_id',lessonId).order('created_at',{ascending:false});
 
-async function loadCodes(){
-  const list = document.getElementById('codes-list');
-  list.innerHTML = '<div class="empty"><div class="loader"></div></div>';
+  const total=(codes||[]).length;
+  const used=(codes||[]).filter(c=>c.used_by).length;
+  const free=total-used;
 
-  const { data } = await sb.from('lesson_codes')
-    .select('id, code, used_at, used_by, created_at, students(profiles(full_name, phone))')
-    .eq('lesson_id', _activeCodesLessonId)
-    .order('created_at', { ascending: false });
-
-  _allCodes = data || [];
-  updateCodesStats();
-  renderCodesList();
-}
-
-function updateCodesStats(){
-  const total  = _allCodes.length;
-  const used   = _allCodes.filter(c => c.used_by).length;
-  const free   = total - used;
-  document.getElementById('codes-total').textContent = total;
-  document.getElementById('codes-used').textContent  = used;
-  document.getElementById('codes-free').textContent  = free;
-}
-
-function filterCodes(filter){
-  _codesFilter = filter;
-  document.querySelectorAll('#codesModal .type-tab').forEach(t => t.classList.remove('active'));
-  document.getElementById(`tab-${filter}`).classList.add('active');
-  renderCodesList();
-}
-
-function renderCodesList(){
-  const list = document.getElementById('codes-list');
-  let filtered = _allCodes;
-  if(_codesFilter === 'used')   filtered = _allCodes.filter(c =>  c.used_by);
-  if(_codesFilter === 'unused') filtered = _allCodes.filter(c => !c.used_by);
-
-  if(!filtered.length){
-    list.innerHTML = `<div class="empty"><div class="empty-icon">${_codesFilter==='used'?'🔴':'✅'}</div><div class="empty-txt">لا توجد أكواد</div></div>`;
-    return;
-  }
-
-  list.innerHTML = filtered.map(c => `
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--bg);border:1px solid ${c.used_by?'rgba(224,82,82,.2)':'var(--border)'};border-radius:var(--r-sm);gap:10px">
-      <div style="display:flex;align-items:center;gap:10px">
-        <span style="font-size:.85rem">${c.used_by ? '🔴' : '✅'}</span>
-        <span style="font-family:var(--mono);font-size:.9rem;font-weight:700;color:${c.used_by?'var(--muted)':'var(--accentBright)'};letter-spacing:.08em">${c.code}</span>
+  c.innerHTML=`
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px">
+    <button class="btn btn-glass btn-sm" onclick="goTo('${ROLE==='admin'?'lessons':'mylessons'}')">← رجوع</button>
+    <div><div class="page-title" style="font-size:1rem">🔑 أكواد: ${lessonTitle}</div></div>
+  </div>
+  <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:16px">
+    <div class="stat-card glass"><div class="stat-ico">🔑</div><div class="stat-num">${total}</div><div class="stat-lbl">الإجمالي</div></div>
+    <div class="stat-card glass"><div class="stat-ico">🔴</div><div class="stat-num">${used}</div><div class="stat-lbl">مستخدم</div></div>
+    <div class="stat-card glass"><div class="stat-ico">✅</div><div class="stat-num">${free}</div><div class="stat-lbl">متاح</div></div>
+  </div>
+  <div class="panel glass" style="margin-bottom:14px">
+    <div class="panel-body" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <select class="inp" id="gen-count" style="width:140px">
+        <option value="10">10 أكواد</option>
+        <option value="25">25 كود</option>
+        <option value="50" selected>50 كود</option>
+        <option value="100">100 كود</option>
+      </select>
+      <button class="btn btn-primary" id="gen-btn" onclick="generateCodes()">⚡ توليد أكواد</button>
+      <button class="btn btn-glass" onclick="copyFreeCodes()">📋 نسخ المتاحة</button>
+    </div>
+  </div>
+  <div class="panel glass">
+    <div class="panel-head">
+      <span class="panel-title">الأكواد</span>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-glass btn-xs" onclick="filterCodes('all',this)">الكل</button>
+        <button class="btn btn-glass btn-xs" onclick="filterCodes('free',this)">✅ متاح</button>
+        <button class="btn btn-glass btn-xs" onclick="filterCodes('used',this)">🔴 مستخدم</button>
       </div>
-      <div style="text-align:left;flex:1">
-        ${c.used_by
-          ? `<div style="font-size:.82rem;font-weight:600">${c.students?.profiles?.full_name || 'طالب'}</div>
-             <div style="font-size:.7rem;color:var(--muted);font-family:var(--mono)">${c.used_at ? new Date(c.used_at).toLocaleString('ar-EG') : '—'}</div>`
-          : `<div style="font-size:.72rem;color:var(--muted);font-family:var(--mono)">${new Date(c.created_at).toLocaleDateString('ar-EG')}</div>`
-        }
-      </div>
-      <button onclick="navigator.clipboard.writeText('${c.code}');toast('info','تم النسخ','${c.code}')" class="btn btn-ghost btn-sm" style="flex-shrink:0">نسخ</button>
-    </div>`).join('');
+    </div>
+    <div id="codes-table">
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>الكود</th><th>الحالة</th><th>الطالب</th><th>وقت الاستخدام</th></tr></thead>
+      <tbody id="codes-tbody">${(codes||[]).map(cd=>`<tr data-used="${!!cd.used_by}">
+        <td><span class="code-chip">${cd.code}</span></td>
+        <td><span class="chip ${cd.used_by?'c-red':'c-green'}">${cd.used_by?'🔴 مستخدم':'✅ متاح'}</span></td>
+        <td>${cd.used_by?`<strong>${cd.students?.profiles?.full_name||'—'}</strong><div class="td-mono">${cd.students?.profiles?.phone||''}</div>`:'—'}</td>
+        <td class="td-mono">${cd.used_at?new Date(cd.used_at).toLocaleString('ar-EG',{dateStyle:'short',timeStyle:'short'}):'—'}</td>
+      </tr>`).join('')||'<tr><td colspan="4"><div class="empty-state"><div class="empty-ico">🔑</div><div>لا توجد أكواد</div></div></td></tr>'}
+      </tbody>
+    </table></div>
+    </div>
+  </div>`;
+  document.getElementById('topTitle').textContent='أكواد الحصة';
+  document.getElementById('topSub').textContent=lessonTitle;
+  // store all codes for filtering/copying
+  window._allCodes = codes||[];
 }
 
-function generateCodeStr(){
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let code = 'KW-';
-  for(let i=0;i<6;i++) code += chars[Math.floor(Math.random()*chars.length)];
-  return code;
+function filterCodes(filter,btn){
+  const rows=[...document.querySelectorAll('#codes-tbody tr[data-used]')];
+  rows.forEach(r=>{
+    if(filter==='all')r.style.display='';
+    else if(filter==='free')r.style.display=r.dataset.used==='false'?'':'none';
+    else if(filter==='used')r.style.display=r.dataset.used==='true'?'':'none';
+  });
 }
-
+function copyFreeCodes(){
+  const free=(window._allCodes||[]).filter(c=>!c.used_by).map(c=>c.code).join('\n');
+  if(!free)return toast('w','لا توجد أكواد متاحة');
+  navigator.clipboard.writeText(free);
+  toast('s',`تم نسخ ${(window._allCodes||[]).filter(c=>!c.used_by).length} كود`);
+}
 async function generateCodes(){
-  const count = parseInt(document.getElementById('gen-count').value);
-  const btn = document.getElementById('gen-btn');
-  btn.innerHTML = '<span class="loader"></span>'; btn.disabled = true;
-
-  // get existing codes to avoid duplicates
-  const { data: existing } = await sb.from('lesson_codes').select('code');
-  const existingSet = new Set((existing||[]).map(c=>c.code));
-
-  const newCodes = [];
-  let attempts = 0;
-  while(newCodes.length < count && attempts < count * 10){
-    attempts++;
-    const code = generateCodeStr();
-    if(!existingSet.has(code)){ existingSet.add(code); newCodes.push({ lesson_id: _activeCodesLessonId, code }); }
+  const count=parseInt(document.getElementById('gen-count').value);
+  const btn=document.getElementById('gen-btn');
+  btn.innerHTML='<span class="ld"></span>';btn.disabled=true;
+  const{data:existing}=await sb.from('lesson_codes').select('code');
+  const existSet=new Set((existing||[]).map(c=>c.code));
+  const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const newCodes=[];
+  let tries=0;
+  while(newCodes.length<count&&tries<count*10){
+    tries++;let code='KW-';
+    for(let i=0;i<6;i++)code+=chars[Math.floor(Math.random()*chars.length)];
+    if(!existSet.has(code)){existSet.add(code);newCodes.push({lesson_id:_activeLessonId,code});}
   }
-
-  const { error } = await sb.from('lesson_codes').insert(newCodes);
-  btn.innerHTML = '⚡ توليد أكواد'; btn.disabled = false;
-  if(error) return toast('error','خطأ', error.message);
-  toast('success', `تم توليد ${newCodes.length} كود!`);
-  await loadCodes();
+  const{error}=await sb.from('lesson_codes').insert(newCodes);
+  btn.innerHTML='⚡ توليد أكواد';btn.disabled=false;
+  if(error)return toast('e',error.message);
+  toast('s',`تم توليد ${newCodes.length} كود`);
+  openCodesPanel(_activeLessonId,document.getElementById('topSub').textContent);
 }
-
-function copyUnusedCodes(){
-  const unused = _allCodes.filter(c => !c.used_by).map(c => c.code).join('\n');
-  if(!unused) return toast('warning','لا توجد أكواد متاحة');
-  navigator.clipboard.writeText(unused);
-  toast('success','تم النسخ!', `${_allCodes.filter(c=>!c.used_by).length} كود اتنسخوا`);
-}
-
-// ── Enter key ─────────────────────────────────────────────────────────────────
-document.getElementById('lg-pass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
 
 // ── Init ──────────────────────────────────────────────────────────────────────
+document.getElementById('lg-pw').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
 checkSession();
 </script>
 </body>
