@@ -576,18 +576,23 @@ function setContent(html){document.getElementById('mainContent').innerHTML=html;
 
 // ── IMAGE UPLOAD to Supabase Storage ──────────────────────────────────────
 async function uploadImage(file, folder='general', progressBarId=null) {
-  const ext = file.name.split('.').pop();
-  const path = `${folder}/${Date.now()}-${Math.random().toString(36).substr(2,6)}.${ext}`;
-  const { data, error } = await sb.storage.from('kalawy').upload(path, file, {
-    cacheControl: '3600', upsert: false,
-    onUploadProgress: (e) => {
-      if(progressBarId) {
-        const pct = Math.round((e.loaded/e.total)*100);
-        const bar = document.getElementById(progressBarId);
-        if(bar) bar.style.width = pct + '%';
-      }
+  const ext = file.name.split('.').pop().toLowerCase();
+  const path = `${folder}/${Date.now()}-${Math.random().toString(36).substr(2,8)}.${ext}`;
+  let animId = null;
+  if(progressBarId) {
+    const prog = document.getElementById(progressBarId)?.parentElement;
+    const bar  = document.getElementById(progressBarId);
+    if(prog) prog.style.display = 'block';
+    if(bar) {
+      let pct = 0;
+      animId = setInterval(() => { pct = Math.min(pct + 8, 85); bar.style.width = pct + '%'; }, 150);
     }
+  }
+  const { data, error } = await sb.storage.from('kalawy').upload(path, file, {
+    cacheControl: '3600', upsert: false, contentType: file.type,
   });
+  if(animId) clearInterval(animId);
+  if(progressBarId) { const bar = document.getElementById(progressBarId); if(bar) bar.style.width = error ? '0%' : '100%'; }
   if(error) throw error;
   return `${SB_URL}/storage/v1/object/public/kalawy/${path}`;
 }
