@@ -1072,7 +1072,7 @@ async function renderAdminLessons(){
       <div class="form-row fr-3">
         <div class="fw"><span class="fl">كود الحصة</span>
           <div style="display:flex;gap:6px">
-            <input class="inp" id="ls-code" placeholder="KW-XXXXX" dir="ltr" style="flex:1">
+            <input class="inp" id="ls-code" placeholder="KW-XXXXXXXX-XXXXXXXX" dir="ltr" style="flex:1">
             <button class="btn btn-glass btn-sm" onclick="genCode()">🎲</button>
           </div>
         </div>
@@ -1121,11 +1121,19 @@ async function renderAdminLessons(){
   </div>`);
 }
 
+function makeSecureKwCode(){
+  // كود قوي يبدأ بـ KW وغير قابل للتوقع مثل الأكواد القديمة القصيرة
+  // بدون I/O/0 عشان الطالب ميتلخبطش في الكتابة
+  const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const bytes=new Uint8Array(20);
+  crypto.getRandomValues(bytes);
+  let raw='';
+  for(let i=0;i<bytes.length;i++) raw += chars[bytes[i] % chars.length];
+  // الشكل النهائي: KW-XXXXXXXX-XXXXXXXX-XXXX
+  return 'KW-' + raw.slice(0,8) + '-' + raw.slice(8,16) + '-' + raw.slice(16,20);
+}
 function genCode(){
-  const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let code='KW-';
-  for(let i=0;i<6;i++)code+=c[Math.floor(Math.random()*c.length)];
-  document.getElementById('ls-code').value=code;
+  document.getElementById('ls-code').value=makeSecureKwCode();
 }
 
 async function addLesson(){
@@ -1440,7 +1448,7 @@ async function renderMyLessons(){
       <div class="form-row fr-3">
         <div class="fw"><span class="fl">كود الحصة</span>
           <div style="display:flex;gap:6px">
-            <input class="inp" id="mls-code" placeholder="KW-XXXXX" dir="ltr" style="flex:1">
+            <input class="inp" id="mls-code" placeholder="KW-XXXXXXXX-XXXXXXXX" dir="ltr" style="flex:1">
             <button class="btn btn-glass btn-sm" onclick="genCode2()">🎲</button>
           </div>
         </div>
@@ -1485,9 +1493,7 @@ async function renderMyLessons(){
   </div>`);
 }
 function genCode2(){
-  const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';let code='KW-';
-  for(let i=0;i<6;i++)code+=c[Math.floor(Math.random()*c.length)];
-  document.getElementById('mls-code').value=code;
+  document.getElementById('mls-code').value=makeSecureKwCode();
 }
 async function addMyLesson(){
   const chId=document.getElementById('mls-ch').value;
@@ -1863,21 +1869,34 @@ function copyFreeCodes(){
 async function generateCodes(){
   const count=parseInt(document.getElementById('gen-count').value);
   const btn=document.getElementById('gen-btn');
+  if(!count || count < 1) return toast('w','اكتب عدد أكواد صحيح');
   btn.innerHTML='<span class="ld"></span>';btn.disabled=true;
-  const{data:existing}=await sb.from('lesson_codes').select('code');
-  const existSet=new Set((existing||[]).map(c=>c.code));
-  const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+
+  const{data:existing,error:loadErr}=await sb.from('lesson_codes').select('code');
+  if(loadErr){btn.innerHTML='⚡ توليد أكواد';btn.disabled=false;return toast('e',loadErr.message);}
+
+  const existSet=new Set((existing||[]).map(c=>String(c.code).toUpperCase()));
   const newCodes=[];
   let tries=0;
-  while(newCodes.length<count&&tries<count*10){
-    tries++;let code='KW-';
-    for(let i=0;i<6;i++)code+=chars[Math.floor(Math.random()*chars.length)];
-    if(!existSet.has(code)){existSet.add(code);newCodes.push({lesson_id:_activeLessonId,code});}
+  while(newCodes.length<count && tries<count*100){
+    tries++;
+    const code=makeSecureKwCode();
+    const key=code.toUpperCase();
+    if(!existSet.has(key)){
+      existSet.add(key);
+      newCodes.push({lesson_id:_activeLessonId,code});
+    }
   }
+
+  if(newCodes.length<count){
+    btn.innerHTML='⚡ توليد أكواد';btn.disabled=false;
+    return toast('e','تعذر توليد كل الأكواد، جرّب عدد أقل');
+  }
+
   const{error}=await sb.from('lesson_codes').insert(newCodes);
   btn.innerHTML='⚡ توليد أكواد';btn.disabled=false;
   if(error)return toast('e',error.message);
-  toast('s',`تم توليد ${newCodes.length} كود`);
+  toast('s',`تم توليد ${newCodes.length} كود قوي يبدأ بـ KW`);
   openCodesPanel(_activeLessonId,document.getElementById('topSub').textContent);
 }
 
