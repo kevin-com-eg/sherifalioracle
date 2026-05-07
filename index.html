@@ -450,6 +450,9 @@ let _examId = null;
 let _qImgUrl = '';
 let _options = [];
 let _optionCount = 0;
+let _adminTeacherProfiles = [];
+let _adminTeacherSubjectMap = {};
+
 
 // ── Toast ──────────────────────────────────────────────────────────────────
 function toast(t, msg, dur=4000) {
@@ -582,6 +585,43 @@ async function renderPage(page){
 
 // ── Render helpers ──────────────────────────────────────────────────────────
 function setContent(html){document.getElementById('mainContent').innerHTML=html;}
+
+
+// ── Teacher subject helpers ────────────────────────────────────────────────
+function subjectOptions(subjects, selected=''){
+  return (subjects||[]).map(s=>`<option value="${s.id}" ${s.id===selected?'selected':''}>${s.name_ar} — ${GRADES[s.grade_id]||s.grade_id||''}</option>`).join('');
+}
+function filterChapterTeachers(){
+  const sid=document.getElementById('ch-sub')?.value;
+  const sel=document.getElementById('ch-tch');
+  if(!sel)return;
+  sel.classList.remove('hv');
+  if(!sid){
+    sel.disabled=true;
+    sel.innerHTML='<option value="" disabled selected>اختار المادة الأول</option>';
+    return;
+  }
+  const allowed=(_adminTeacherProfiles||[]).filter(t=>(_adminTeacherSubjectMap[t.id]||[]).includes(sid));
+  sel.disabled=false;
+  sel.innerHTML=`<option value="" disabled selected>${allowed.length?'اختار المدرس':'لا يوجد مدرس لهذه المادة'}</option>`+
+    allowed.map(t=>`<option value="${t.id}">${t.name}</option>`).join('');
+}
+async function updateTeacherSubject(teacherId, subjectId){
+  if(!teacherId||!subjectId)return toast('w','اختار مادة للمدرس');
+  const old=document.querySelector(`[data-teacher-sub="${teacherId}"]`);
+  if(old) old.disabled=true;
+  await sb.from('teachers').upsert({id:teacherId,bio:null},{onConflict:'id'});
+  const del=await sb.from('teacher_subjects').delete().eq('teacher_id',teacherId);
+  if(del.error){ if(old) old.disabled=false; return toast('e',del.error.message); }
+  const ins=await sb.from('teacher_subjects').insert({teacher_id:teacherId,subject_id:subjectId});
+  if(ins.error){ if(old) old.disabled=false; return toast('e',ins.error.message); }
+  toast('s','تم ربط المدرس بالمادة');
+  renderTeachers();
+}
+function teacherAllowedForSubject(teacherId, subjectId){
+  return !!((_adminTeacherSubjectMap[teacherId]||[]).includes(subjectId));
+}
+
 
 function imgSrc(v){
   if(!v) return '';
@@ -743,17 +783,42 @@ async function delSubject(id,name){
 // ── TEACHERS ────────────────────────────────────────────────────────────────
 async function renderTeachers(){
   setContent('<div class="loading"><div class="ld"></div></div>');
-  const{data}=await sb.from('teachers').select('id,bio,created_at,profiles(full_name,phone,email,image_url)').order('created_at',{ascending:false});
+  const[{data:profiles},{data:teacherRows},{data:subjects},{data:links}]=await Promise.all([
+    // الأساس الحقيقي للمدرس هو profiles.role = teacher
+    // عشان لو المدرس موجود في profiles ومش موجود في teachers يظهر برضه ونربطه بالمادة
+    sb.from('profiles').select('id,full_name,phone,email,image_url,created_at').eq('role','teacher').order('created_at',{ascending:false}),
+    sb.from('teachers').select('id,bio,created_at'),
+    sb.from('subjects').select('id,name_ar,grade_id').order('name_ar'),
+    sb.from('teacher_subjects').select('teacher_id,subject_id')
+  ]);
+  const teacherMap=Object.fromEntries((teacherRows||[]).map(t=>[t.id,t]));
+  const data=(profiles||[]).map(p=>({
+    id:p.id,
+    bio:teacherMap[p.id]?.bio||'',
+    created_at:teacherMap[p.id]?.created_at||p.created_at,
+    profiles:p,
+    missing_teacher_row:!teacherMap[p.id]
+  }));
+  const subOpts=subjectOptions(subjects||[]);
+  const linkMap={};
+  (links||[]).forEach(l=>{linkMap[l.teacher_id]=l.subject_id;});
   setContent(`
   <div class="panel glass">
-    <div class="panel-head"><span class="panel-title">➕ إضافة مدرس</span></div>
+    <div class="panel-head"><span class="panel-title">➕ إضافة مدرس</span><span class="chip c-blue">كل مدرس بمادته فقط</span></div>
     <div class="panel-body">
       <div class="form-row fr-3">
         <div class="fw"><span class="fl">الاسم</span><input class="inp" id="tch-name" placeholder="اسم المدرس"></div>
         <div class="fw"><span class="fl">البريد</span><input class="inp" id="tch-email" type="email" placeholder="teacher@email.com" dir="ltr"></div>
         <div class="fw"><span class="fl">كلمة سر مؤقتة</span><input class="inp" id="tch-pass" placeholder="6 أحرف+" dir="ltr"></div>
       </div>
-      <div class="fw" style="margin-bottom:10px"><span class="fl">نبذة (اختياري)</span><input class="inp" id="tch-bio" placeholder="تخصص المدرس..."></div>
+      <div class="form-row fr-2">
+        <div class="fw"><span class="fl">مادة المدرس</span>
+          <select class="inp" id="tch-sub" onchange="this.classList.add('hv')">
+            <option value="" disabled selected>اختار المادة</option>${subOpts}
+          </select>
+        </div>
+        <div class="fw"><span class="fl">نبذة (اختياري)</span><input class="inp" id="tch-bio" placeholder="تخصص المدرس..."></div>
+      </div>
       <div class="fw" style="margin-bottom:14px"><span class="fl">صورة المدرس</span>
         <div class="img-upload">
           <input type="file" id="tch-img-file" accept="image/*" onchange="previewCircleImg(this,'tch-img-preview')">
@@ -764,28 +829,45 @@ async function renderTeachers(){
         </div>
       </div>
       <button class="btn btn-primary" id="tch-btn" onclick="addTeacher()">إضافة المدرس</button>
+      <button class="btn btn-glass" style="margin-inline-start:8px" onclick="syncMissingTeachers()">🔄 مزامنة المدرسين القدامى</button>
     </div>
   </div>
   <div class="panel glass">
-    <div class="panel-head"><span class="panel-title">المدرسين (${(data||[]).length})</span></div>
+    <div class="panel-head"><span class="panel-title">المدرسين (${data.length})</span><span class="chip c-gray">من جدول profiles</span></div>
     <div class="tbl-wrap"><table>
-      <thead><tr><th>الصورة</th><th>الاسم</th><th>البريد</th><th>نبذة</th><th>التاريخ</th><th>إجراء</th></tr></thead>
-      <tbody>${(data||[]).map(t=>{
+      <thead><tr><th>الصورة</th><th>الاسم</th><th>البريد</th><th>مادته</th><th>نبذة</th><th>التاريخ</th><th>إجراء</th></tr></thead>
+      <tbody>${data.map(t=>{
         const av=t.profiles?.image_url
           ?`<img class="tbl-av" src="${imgSafe(t.profiles.image_url)}" alt="" onerror="imgErr(this,'👤')" loading="lazy">`
           :`<div class="tbl-av-placeholder">${(t.profiles?.full_name||'?')[0].toUpperCase()}</div>`;
+        const current=linkMap[t.id]||'';
         return`<tr>
           <td>${av}</td>
-          <td><strong>${t.profiles?.full_name||'—'}</strong></td>
+          <td><strong>${t.profiles?.full_name||'—'}</strong>${t.missing_teacher_row?`<div style="font-size:.7rem;color:var(--warning);margin-top:2px">⚠️ محتاج مزامنة</div>`:''}</td>
           <td class="td-mono" style="direction:ltr;font-size:.76rem">${t.profiles?.email||'—'}</td>
+          <td><select class="inp" style="min-width:170px;padding:7px 10px" data-teacher-sub="${t.id}" onchange="updateTeacherSubject('${t.id}',this.value)">
+            <option value="" ${!current?'selected':''} disabled>اختار المادة</option>${subjectOptions(subjects||[],current)}
+          </select></td>
           <td style="font-size:.8rem;color:var(--text3)">${t.bio||'—'}</td>
           <td class="td-mono">${new Date(t.created_at).toLocaleDateString('ar-EG')}</td>
           <td><button class="btn btn-danger btn-xs" onclick="delTeacher('${t.id}','${t.profiles?.full_name||t.id}')">حذف</button></td>
         </tr>`;
-      }).join('')||'<tr><td colspan="6"><div class="empty-state"><div class="empty-ico">👨‍🏫</div><div>لا يوجد مدرسين</div></div></td></tr>'}
+      }).join('')||'<tr><td colspan="7"><div class="empty-state"><div class="empty-ico">👨‍🏫</div><div>لا يوجد مدرسين</div></div></td></tr>'}
       </tbody>
     </table></div>
   </div>`);
+}
+
+async function syncMissingTeachers(){
+  const {data:profiles,error}=await sb.from('profiles').select('id,email').eq('role','teacher');
+  if(error)return toast('e',error.message);
+  let ok=0, fail=0;
+  for(const p of (profiles||[])){
+    const r=await sb.from('teachers').upsert({id:p.id,bio:null},{onConflict:'id'});
+    if(r.error) fail++; else ok++;
+  }
+  toast(fail?'w':'s',`تمت المزامنة: ${ok} مدرس${fail?` / فشل ${fail}`:''}`);
+  renderTeachers();
 }
 
 function previewCircleImg(input,previewId){
@@ -800,8 +882,9 @@ async function addTeacher(){
   const email=document.getElementById('tch-email').value.trim();
   const pass=document.getElementById('tch-pass').value;
   const bio=document.getElementById('tch-bio').value.trim();
+  const subjectId=document.getElementById('tch-sub').value;
   const file=document.getElementById('tch-img-file').files[0];
-  if(!name||!email||!pass)return toast('w','الاسم والبريد وكلمة السر مطلوبين');
+  if(!name||!email||!pass||!subjectId)return toast('w','الاسم والبريد وكلمة السر ومادة المدرس مطلوبين');
   if(pass.length<6)return toast('w','كلمة السر 6 أحرف على الأقل');
   const btn=document.getElementById('tch-btn');
   btn.innerHTML='<span class="ld"></span>';btn.disabled=true;
@@ -814,13 +897,18 @@ async function addTeacher(){
     try{document.getElementById('tch-img-prog').style.display='block';img_url=await uploadImage(file,'teachers','tch-img-bar');}
     catch(e){toast('w','فشل رفع الصورة: '+(e.message||'راجع Storage policy'));}
   }
-  await sb.from('profiles').insert({id:uid,full_name:name,role:'teacher',email,image_url:img_url});
-  await sb.from('teachers').insert({id:uid,bio:bio||null});
+  const pIns=await sb.from('profiles').insert({id:uid,full_name:name,role:'teacher',email,image_url:img_url});
+  if(pIns.error){btn.textContent='إضافة المدرس';btn.disabled=false;return toast('e',pIns.error.message);}
+  const tIns=await sb.from('teachers').insert({id:uid,bio:bio||null});
+  if(tIns.error){btn.textContent='إضافة المدرس';btn.disabled=false;return toast('e',tIns.error.message);}
+  const tsIns=await sb.from('teacher_subjects').insert({teacher_id:uid,subject_id:subjectId});
+  if(tsIns.error){btn.textContent='إضافة المدرس';btn.disabled=false;return toast('e',tsIns.error.message);}
   btn.textContent='إضافة المدرس';btn.disabled=false;
   toast('s',`تم إضافة المدرس "${name}"`);renderTeachers();
 }
 async function delTeacher(id,name){
   const ok=await confirmDel(`حذف المدرس "${name}"؟`);if(!ok)return;
+  await sb.from('teacher_subjects').delete().eq('teacher_id',id);
   await sb.from('teachers').delete().eq('id',id);
   toast('s','تم الحذف');renderTeachers();
 }
@@ -828,26 +916,29 @@ async function delTeacher(id,name){
 // ── ADMIN CHAPTERS ──────────────────────────────────────────────────────────
 async function renderAdminChapters(){
   setContent('<div class="loading"><div class="ld"></div></div>');
-  const[{data:subs},{data:tchs},{data:chs}]=await Promise.all([
+  const[{data:subs},{data:tchs},{data:links},{data:chs}]=await Promise.all([
     sb.from('subjects').select('id,name_ar,grade_id').order('name_ar'),
     sb.from('teachers').select('id,profiles(full_name)'),
-    sb.from('chapters').select('id,title,description,created_at,image_url,created_by,subjects(name_ar),profiles(full_name)').order('created_at',{ascending:false}),
+    sb.from('teacher_subjects').select('teacher_id,subject_id'),
+    sb.from('chapters').select('id,title,description,created_at,image_url,created_by,subject_id,teacher_id,subjects(name_ar),profiles(full_name)').order('created_at',{ascending:false}),
   ]);
+  _adminTeacherProfiles=(tchs||[]).map(t=>({id:t.id,name:t.profiles?.full_name||t.id}));
+  _adminTeacherSubjectMap={};
+  (links||[]).forEach(l=>{(_adminTeacherSubjectMap[l.teacher_id] ||= []).push(l.subject_id);});
   const subOpts=(subs||[]).map(s=>`<option value="${s.id}">${s.name_ar} — ${GRADES[s.grade_id]}</option>`).join('');
-  const tchOpts=(tchs||[]).map(t=>`<option value="${t.id}">${t.profiles?.full_name||t.id}</option>`).join('');
   setContent(`
   <div class="panel glass">
-    <div class="panel-head"><span class="panel-title">➕ إضافة شابتر</span></div>
+    <div class="panel-head"><span class="panel-title">➕ إضافة شابتر</span><span class="chip c-blue">المدرسين يظهروا حسب المادة فقط</span></div>
     <div class="panel-body">
       <div class="form-row fr-3">
         <div class="fw"><span class="fl">المادة</span>
-          <select class="inp" id="ch-sub" onchange="this.classList.add('hv')">
+          <select class="inp" id="ch-sub" onchange="this.classList.add('hv');filterChapterTeachers()">
             <option value="" disabled selected>اختار</option>${subOpts}
           </select>
         </div>
         <div class="fw"><span class="fl">المدرس</span>
-          <select class="inp" id="ch-tch" onchange="this.classList.add('hv')">
-            <option value="" disabled selected>اختار</option>${tchOpts}
+          <select class="inp" id="ch-tch" onchange="this.classList.add('hv')" disabled>
+            <option value="" disabled selected>اختار المادة الأول</option>
           </select>
         </div>
         <div class="fw"><span class="fl">اسم الشابتر</span><input class="inp" id="ch-title" placeholder="الوحدة الأولى"></div>
@@ -890,6 +981,7 @@ async function addChapter(){
   const desc=document.getElementById('ch-desc').value.trim();
   const file=document.getElementById('ch-img-file').files[0];
   if(!sid||!tid||!title)return toast('w','اختار المادة والمدرس وادخل اسم الشابتر');
+  if(!teacherAllowedForSubject(tid,sid))return toast('w','المدرس ده مش مربوط بالمادة دي');
   const btn=document.getElementById('ch-btn');
   btn.innerHTML='<span class="ld"></span>';btn.disabled=true;
   let img_url=null;
@@ -1071,34 +1163,36 @@ async function renderTeacherDash(){
 
 async function renderMyChapters(){
   setContent('<div class="loading"><div class="ld"></div></div>');
-  const[{data:subs},{data:myChs}]=await Promise.all([
-    sb.from('subjects').select('id,name_ar,grade_id').order('name_ar'),
+  const[{data:links},{data:myChs}]=await Promise.all([
+    sb.from('teacher_subjects').select('subject_id,subjects(id,name_ar,grade_id)').eq('teacher_id',ME.id),
     sb.from('chapters').select('id,title,description,image_url,created_at,subjects(name_ar,grade_id)').eq('teacher_id',ME.id).order('created_at',{ascending:false}),
   ]);
+  const subs=(links||[]).map(l=>l.subjects).filter(Boolean);
   const subOpts=(subs||[]).map(s=>`<option value="${s.id}">${s.name_ar} — ${GRADES[s.grade_id]}</option>`).join('');
   setContent(`
   <div class="panel glass">
-    <div class="panel-head"><span class="panel-title">➕ إضافة شابتر</span></div>
+    <div class="panel-head"><span class="panel-title">➕ إضافة شابتر</span><span class="chip c-blue">هتقدر تضيف في مادتك بس</span></div>
     <div class="panel-body">
+      ${!subs.length?`<div class="empty-state" style="padding:18px"><div class="empty-ico">⚠️</div><div>الأدمن لسه ماحددلكش مادة</div></div>`:''}
       <div class="form-row fr-2">
         <div class="fw"><span class="fl">المادة</span>
-          <select class="inp" id="mch-sub" onchange="this.classList.add('hv')">
-            <option value="" disabled selected>اختار</option>${subOpts}
+          <select class="inp" id="mch-sub" onchange="this.classList.add('hv')" ${!subs.length?'disabled':''}>
+            <option value="" disabled selected>${subs.length?'اختار':'لا توجد مادة مخصصة'}</option>${subOpts}
           </select>
         </div>
-        <div class="fw"><span class="fl">اسم الشابتر</span><input class="inp" id="mch-title" placeholder="الوحدة الأولى"></div>
+        <div class="fw"><span class="fl">اسم الشابتر</span><input class="inp" id="mch-title" placeholder="الوحدة الأولى" ${!subs.length?'disabled':''}></div>
       </div>
-      <div class="fw" style="margin-bottom:10px"><span class="fl">وصف</span><input class="inp" id="mch-desc" placeholder="..."></div>
+      <div class="fw" style="margin-bottom:10px"><span class="fl">وصف</span><input class="inp" id="mch-desc" placeholder="..." ${!subs.length?'disabled':''}></div>
       <div class="fw" style="margin-bottom:14px"><span class="fl">صورة الشابتر</span>
         <div class="img-upload">
-          <input type="file" id="mch-img-file" accept="image/*" onchange="previewImgField(this,'mch-img-preview')">
+          <input type="file" id="mch-img-file" accept="image/*" onchange="previewImgField(this,'mch-img-preview')" ${!subs.length?'disabled':''}>
           <div class="img-upload-ico">📖</div>
           <div class="img-upload-txt">اضغط لرفع صورة الشابتر</div>
           <div class="upload-progress" id="mch-img-prog" style="display:none"><div class="upload-bar" id="mch-img-bar"></div></div>
           <img id="mch-img-preview" class="img-preview" style="display:none">
         </div>
       </div>
-      <button class="btn btn-primary" id="mch-btn" onclick="addMyChapter()">إضافة الشابتر</button>
+      <button class="btn btn-primary" id="mch-btn" onclick="addMyChapter()" ${!subs.length?'disabled':''}>إضافة الشابتر</button>
     </div>
   </div>
   <div class="panel glass">
@@ -1124,6 +1218,8 @@ async function addMyChapter(){
   const desc=document.getElementById('mch-desc').value.trim();
   const file=document.getElementById('mch-img-file').files[0];
   if(!sid||!title)return toast('w','اختار المادة وادخل اسم الشابتر');
+  const{data:allowedSub}=await sb.from('teacher_subjects').select('subject_id').eq('teacher_id',ME.id).eq('subject_id',sid).maybeSingle();
+  if(!allowedSub)return toast('w','المادة دي مش مخصصة لحسابك');
   const btn=document.getElementById('mch-btn');
   btn.innerHTML='<span class="ld"></span>';btn.disabled=true;
   let img_url=null;
