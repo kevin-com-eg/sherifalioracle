@@ -350,8 +350,17 @@ tr:hover td{background:rgba(255,255,255,.02)}
     <!-- IMAGE -->
     <div class="ct-panel" id="ct-image">
       <div class="fw" style="margin-bottom:8px"><span class="fl">عنوان الصورة</span><input class="inp" id="img-title" placeholder="شكل توضيحي..."></div>
-      <div class="fw" style="margin-bottom:14px"><span class="fl">رابط الصورة</span><input class="inp" id="img-url" placeholder="https://..." dir="ltr"></div>
-      <button class="btn btn-primary" onclick="addContent('image')">➕ إضافة</button>
+      <div class="fw" style="margin-bottom:10px"><span class="fl">رابط الصورة</span><input class="inp" id="img-url" placeholder="https://... أو سيبها فاضية وارفع صورة" dir="ltr"></div>
+      <div class="fw" style="margin-bottom:14px"><span class="fl">رفع صورة من الجهاز</span>
+        <div class="img-upload">
+          <input type="file" id="img-content-file" accept="image/*" onchange="previewImgField(this,'img-content-preview')">
+          <div class="img-upload-ico">🖼️</div>
+          <div class="img-upload-txt">اضغط لرفع صورة للمحتوى</div>
+          <div class="upload-progress" id="img-content-prog" style="display:none"><div class="upload-bar" id="img-content-bar"></div></div>
+          <img id="img-content-preview" class="img-preview" style="display:none">
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="addContent('image')" id="img-content-btn">➕ إضافة</button>
     </div>
 
     <!-- TEXT -->
@@ -574,6 +583,23 @@ async function renderPage(page){
 // ── Render helpers ──────────────────────────────────────────────────────────
 function setContent(html){document.getElementById('mainContent').innerHTML=html;}
 
+function imgSrc(v){
+  if(!v) return '';
+  v = String(v).trim();
+  if(!v) return '';
+  if(v.startsWith('http://') || v.startsWith('https://') || v.startsWith('data:') || v.startsWith('blob:')) return v;
+  if(v.startsWith('/storage/v1/object/public/')) return SB_URL + v;
+  v = v.replace(/^\/+/, '').replace(/^kalawy\//, '');
+  return `${SB_URL}/storage/v1/object/public/kalawy/${v}`;
+}
+function imgSafe(v){return imgSrc(v).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');}
+function safeUrl(v){return imgSafe(v);}
+function imgErr(el, icon='🖼️'){
+  const cls = el.dataset.fallbackClass || 'tbl-thumb-ph';
+  el.outerHTML = `<div class="${cls}">${icon}</div>`;
+}
+
+
 // ── IMAGE UPLOAD to Supabase Storage ──────────────────────────────────────
 async function uploadImage(file, folder='general', progressBarId=null) {
   if(!file) return null;
@@ -597,7 +623,8 @@ async function uploadImage(file, folder='general', progressBarId=null) {
   if(animId) clearInterval(animId);
   if(progressBarId) { const bar = document.getElementById(progressBarId); if(bar) bar.style.width = error ? '0%' : '100%'; }
   if(error) throw error;
-  return `${SB_URL}/storage/v1/object/public/kalawy/${path}`;
+  const { data: pub } = sb.storage.from('kalawy').getPublicUrl(path);
+  return pub?.publicUrl || `${SB_URL}/storage/v1/object/public/kalawy/${path}`;
 }
 
 // ── ADMIN DASHBOARD ─────────────────────────────────────────────────────────
@@ -668,7 +695,7 @@ async function renderSubjects(){
     <div class="tbl-wrap"><table>
       <thead><tr><th>الصورة</th><th>المادة</th><th>الصف</th><th>التاريخ</th><th>إجراء</th></tr></thead>
       <tbody>${(data||[]).map(s=>`<tr>
-        <td>${s.image_url?`<img class="tbl-thumb" src="${s.image_url}" alt="">`:`<div class="tbl-thumb-ph">📚</div>`}</td>
+        <td>${s.image_url?`<img class="tbl-thumb" src="${imgSafe(s.image_url)}" alt="" onerror="imgErr(this,'📚')" loading="lazy">`:`<div class="tbl-thumb-ph">📚</div>`}</td>
         <td><strong>${s.name_ar}</strong></td>
         <td><span class="chip c-blue">${GRADES[s.grade_id]||s.grade_id}</span></td>
         <td class="td-mono">${new Date(s.created_at).toLocaleDateString('ar-EG')}</td>
@@ -745,7 +772,7 @@ async function renderTeachers(){
       <thead><tr><th>الصورة</th><th>الاسم</th><th>البريد</th><th>نبذة</th><th>التاريخ</th><th>إجراء</th></tr></thead>
       <tbody>${(data||[]).map(t=>{
         const av=t.profiles?.image_url
-          ?`<img class="tbl-av" src="${t.profiles.image_url}" alt="">`
+          ?`<img class="tbl-av" src="${imgSafe(t.profiles.image_url)}" alt="" onerror="imgErr(this,'👤')" loading="lazy">`
           :`<div class="tbl-av-placeholder">${(t.profiles?.full_name||'?')[0].toUpperCase()}</div>`;
         return`<tr>
           <td>${av}</td>
@@ -843,7 +870,7 @@ async function renderAdminChapters(){
     <div class="tbl-wrap"><table>
       <thead><tr><th>الصورة</th><th>الشابتر</th><th>المادة</th><th>المدرس</th><th>أضافه</th><th>التاريخ</th><th>إجراء</th></tr></thead>
       <tbody>${(chs||[]).map(ch=>`<tr>
-        <td>${ch.image_url?`<img class="tbl-thumb" src="${ch.image_url}" alt="">`:`<div class="tbl-thumb-ph">📖</div>`}</td>
+        <td>${ch.image_url?`<img class="tbl-thumb" src="${imgSafe(ch.image_url)}" alt="" onerror="imgErr(this,'📖')" loading="lazy">`:`<div class="tbl-thumb-ph">📖</div>`}</td>
         <td><strong>${ch.title}</strong>${ch.description?`<div style="font-size:.74rem;color:var(--text3);margin-top:2px">${ch.description}</div>`:''}</td>
         <td><span class="chip c-gold">${ch.subjects?.name_ar||'—'}</span></td>
         <td>${ch.profiles?.full_name||'—'}</td>
@@ -926,7 +953,7 @@ async function renderAdminLessons(){
     <div class="tbl-wrap"><table>
       <thead><tr><th>الصورة</th><th>الحصة</th><th>الشابتر</th><th>الكود</th><th>الحالة</th><th>الوقت</th><th>إجراءات</th></tr></thead>
       <tbody>${(lessons||[]).map(l=>`<tr>
-        <td>${l.image_url?`<img class="tbl-thumb" src="${l.image_url}">`:`<div class="tbl-thumb-ph">🎬</div>`}</td>
+        <td>${l.image_url?`<img class="tbl-thumb" src="${imgSafe(l.image_url)}" onerror="imgErr(this,'🎬')" loading="lazy">`:`<div class="tbl-thumb-ph">🎬</div>`}</td>
         <td><strong>${l.title}</strong></td>
         <td><span class="chip c-gold" style="font-size:.66rem">${l.chapters?.title||'—'}</span></td>
         <td><span class="code-chip">${l.code}</span></td>
@@ -1079,7 +1106,7 @@ async function renderMyChapters(){
     <div class="tbl-wrap"><table>
       <thead><tr><th>الصورة</th><th>الشابتر</th><th>المادة</th><th>الصف</th><th>التاريخ</th><th>إجراء</th></tr></thead>
       <tbody>${(myChs||[]).map(ch=>`<tr>
-        <td>${ch.image_url?`<img class="tbl-thumb" src="${ch.image_url}">`:`<div class="tbl-thumb-ph">📖</div>`}</td>
+        <td>${ch.image_url?`<img class="tbl-thumb" src="${imgSafe(ch.image_url)}" onerror="imgErr(this,'📖')" loading="lazy">`:`<div class="tbl-thumb-ph">📖</div>`}</td>
         <td><strong>${ch.title}</strong>${ch.description?`<div style="font-size:.74rem;color:var(--text3)">${ch.description}</div>`:''}</td>
         <td><span class="chip c-gold">${ch.subjects?.name_ar||'—'}</span></td>
         <td><span class="chip c-blue">${GRADES[ch.subjects?.grade_id]||'—'}</span></td>
@@ -1161,7 +1188,7 @@ async function renderMyLessons(){
     <div class="tbl-wrap"><table>
       <thead><tr><th>الصورة</th><th>الحصة</th><th>الشابتر</th><th>الكود</th><th>الحالة</th><th>الوقت</th><th>إجراءات</th></tr></thead>
       <tbody>${lessons.map(l=>`<tr>
-        <td>${l.image_url?`<img class="tbl-thumb" src="${l.image_url}">`:`<div class="tbl-thumb-ph">🎬</div>`}</td>
+        <td>${l.image_url?`<img class="tbl-thumb" src="${imgSafe(l.image_url)}" onerror="imgErr(this,'🎬')" loading="lazy">`:`<div class="tbl-thumb-ph">🎬</div>`}</td>
         <td><strong>${l.title}</strong></td>
         <td><span class="chip c-gold" style="font-size:.66rem">${l.chapters?.title||'—'}</span></td>
         <td><span class="code-chip">${l.code}</span></td>
@@ -1287,7 +1314,7 @@ async function loadQuestions(){
         <span class="question-num">سؤال ${i+1}</span>
         <button class="btn btn-danger btn-xs" onclick="delQuestion('${q.id}')">حذف</button>
       </div>
-      ${q.image_url?`<img src="${q.image_url}" style="width:100%;max-height:120px;object-fit:contain;border-radius:8px;margin-bottom:8px">`:''}
+      ${q.image_url?`<img src="${imgSafe(q.image_url)}" onerror="imgErr(this,'🖼️')" loading="lazy" style="width:100%;max-height:120px;object-fit:contain;border-radius:8px;margin-bottom:8px">`:''}
       <div style="font-weight:700;font-size:.9rem;margin-bottom:10px">${q.question_text}</div>
       <div class="options-grid">
         ${opts.map((o,oi)=>`<div class="option-row${o.is_correct?' correct':''}">
@@ -1446,13 +1473,31 @@ async function delHomework(id){
 async function addContent(type){
   let url='',title='',body='';
   if(type==='pdf'){url=document.getElementById('pdf-url').value.trim();title=document.getElementById('pdf-title').value.trim();}
-  if(type==='image'){url=document.getElementById('img-url').value.trim();title=document.getElementById('img-title').value.trim();}
+  if(type==='image'){
+    url=document.getElementById('img-url').value.trim();
+    title=document.getElementById('img-title').value.trim();
+    const file=document.getElementById('img-content-file')?.files?.[0];
+    const btn=document.getElementById('img-content-btn');
+    if(file){
+      try{
+        if(btn){btn.innerHTML='<span class="ld"></span>';btn.disabled=true;}
+        document.getElementById('img-content-prog').style.display='block';
+        url=await uploadImage(file,'lesson-images','img-content-bar');
+      }catch(e){
+        if(btn){btn.textContent='➕ إضافة';btn.disabled=false;}
+        return toast('e','فشل رفع الصورة: '+(e.message||'راجع Storage policy'));
+      }
+      if(btn){btn.textContent='➕ إضافة';btn.disabled=false;}
+    }
+  }
   if(type==='text'){body=document.getElementById('txt-body').value.trim();}
   if(!url&&!body)return toast('w','ادخل المحتوى');
   const{error}=await sb.from('lesson_content').insert({lesson_id:_activeLessonId,type,url:url||null,title:title||null,body:body||null});
   if(error)return toast('e',error.message);
   toast('s','تم إضافة المحتوى');
-  ['pdf-url','pdf-title','img-url','img-title','txt-body'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['pdf-url','pdf-title','img-url','img-title','txt-body','img-content-file'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  const im=document.getElementById('img-content-preview'); if(im) im.style.display='none';
+  const pr=document.getElementById('img-content-prog'); if(pr) pr.style.display='none';
 }
 
 // ── CODES PANEL (inline in main) ─────────────────────────────────────────────
