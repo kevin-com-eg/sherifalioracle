@@ -916,15 +916,25 @@ async function addTeacher(){
   if(pass.length<6)return toast('w','كلمة السر 6 أحرف على الأقل');
   const btn=document.getElementById('tch-btn');
   btn.innerHTML='<span class="ld"></span>';btn.disabled=true;
+
+  // مهم: نرفع صورة المدرس قبل إنشاء حسابه.
+  // لأن signUp أحياناً يغيّر جلسة المتصفح للحساب الجديد، وساعتها Storage RLS ممكن يرفض الرفع.
+  let img_url=null;
+  if(file){
+    try{
+      document.getElementById('tch-img-prog').style.display='block';
+      img_url=await uploadImage(file,'teachers','tch-img-bar');
+    }catch(e){
+      btn.textContent='إضافة المدرس';btn.disabled=false;
+      return toast('e','فشل رفع الصورة: '+(e.message||'راجع Storage policy'));
+    }
+  }
+
   const{data,error}=await sb.auth.signUp({email,password:pass,options:{data:{full_name:name}}});
   if(error){toast('e',error.message);btn.textContent='إضافة المدرس';btn.disabled=false;return;}
   const uid=data.user?.id;
   if(!uid){toast('e','فشل إنشاء الحساب');btn.textContent='إضافة المدرس';btn.disabled=false;return;}
-  let img_url=null;
-  if(file){
-    try{document.getElementById('tch-img-prog').style.display='block';img_url=await uploadImage(file,'teachers','tch-img-bar');}
-    catch(e){toast('w','فشل رفع الصورة: '+(e.message||'راجع Storage policy'));}
-  }
+
   const pIns=await sb.from('profiles').insert({id:uid,full_name:name,role:'teacher',email,image_url:img_url});
   if(pIns.error){btn.textContent='إضافة المدرس';btn.disabled=false;return toast('e',pIns.error.message);}
   const tIns=await sb.from('teachers').insert({id:uid,bio:bio||null});
