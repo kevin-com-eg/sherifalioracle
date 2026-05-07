@@ -302,7 +302,10 @@ tr:hover td{background:rgba(255,255,255,.02)}
         <div class="fw"><span class="fl">عنوان الامتحان</span><input class="inp" id="ex-title" placeholder="امتحان الوحدة الأولى"></div>
         <div class="fw"><span class="fl">مدة الامتحان (دقيقة)</span><input class="inp" id="ex-dur" type="number" placeholder="60" min="1"></div>
       </div>
-      <div class="fw" style="margin-bottom:14px"><span class="fl">وقت فتح الامتحان</span><input class="inp" id="ex-time" type="datetime-local"></div>
+      <div class="form-row fr-2" style="margin-bottom:14px">
+        <div class="fw"><span class="fl">وقت فتح الامتحان</span><input class="inp" id="ex-time" type="datetime-local"></div>
+        <div class="fw"><span class="fl">درجة فتح الفيديو %</span><input class="inp" id="ex-pass" type="number" min="0" max="100" value="50" placeholder="50"></div>
+      </div>
 
       <div style="border-top:1px solid var(--glass-border);padding-top:14px;margin-bottom:12px">
         <div style="font-weight:700;font-size:.88rem;margin-bottom:10px">➕ أضف سؤال</div>
@@ -852,7 +855,7 @@ async function renderTeachers(){
           <td class="td-mono">${new Date(t.created_at).toLocaleDateString('ar-EG')}</td>
           <td><button class="btn btn-danger btn-xs" onclick="delTeacher('${t.id}','${t.profiles?.full_name||t.id}')">حذف</button></td>
         </tr>`;
-      }).join('')||'<tr><td colspan="7"><div class="empty-state"><div class="empty-ico">👨‍🏫</div><div>لا يوجد مدرسين</div></div></td></tr>'}
+      }).join('')||'<tr><td colspan="8"><div class="empty-state"><div class="empty-ico">👨‍🏫</div><div>لا يوجد مدرسين</div></div></td></tr>'}
       </tbody>
     </table></div>
   </div>`);
@@ -968,7 +971,7 @@ async function renderAdminChapters(){
         <td><span class="chip ${ch.created_by==='admin'?'c-purple':'c-green'}">${ch.created_by}</span></td>
         <td class="td-mono">${new Date(ch.created_at).toLocaleDateString('ar-EG')}</td>
         <td><button class="btn btn-danger btn-xs" onclick="delChapter('${ch.id}','${ch.title}')">حذف</button></td>
-      </tr>`).join('')||'<tr><td colspan="7"><div class="empty-state"><div class="empty-ico">📖</div><div>لا توجد شابترات</div></div></td></tr>'}
+      </tr>`).join('')||'<tr><td colspan="8"><div class="empty-state"><div class="empty-ico">📖</div><div>لا توجد شابترات</div></div></td></tr>'}
       </tbody>
     </table></div>
   </div>`);
@@ -1004,7 +1007,7 @@ async function delChapter(id,title){
 async function renderAdminLessons(){
   setContent('<div class="loading"><div class="ld"></div></div>');
   const{data:chs}=await sb.from('chapters').select('id,title,subjects(name_ar)').order('title');
-  const{data:lessons}=await sb.from('lessons').select('id,title,code,is_active,scheduled_at,image_url,chapters(title,subjects(name_ar))').order('created_at',{ascending:false});
+  const{data:lessons}=await sb.from('lessons').select('id,title,code,is_active,scheduled_at,access_hours,image_url,chapters(title,subjects(name_ar))').order('created_at',{ascending:false});
   const chOpts=(chs||[]).map(c=>`<option value="${c.id}">${c.subjects?.name_ar||''} ← ${c.title}</option>`).join('');
   setContent(`
   <div class="panel glass">
@@ -1018,7 +1021,7 @@ async function renderAdminLessons(){
         </div>
         <div class="fw"><span class="fl">عنوان الحصة</span><input class="inp" id="ls-title" placeholder="درس المشتقات"></div>
       </div>
-      <div class="form-row fr-2">
+      <div class="form-row fr-3">
         <div class="fw"><span class="fl">كود الحصة</span>
           <div style="display:flex;gap:6px">
             <input class="inp" id="ls-code" placeholder="KW-XXXXX" dir="ltr" style="flex:1">
@@ -1026,6 +1029,7 @@ async function renderAdminLessons(){
           </div>
         </div>
         <div class="fw"><span class="fl">وقت فتح الحصة</span><input class="inp" id="ls-time" type="datetime-local"></div>
+        <div class="fw"><span class="fl">مدة فتح الحصة بعد الكود / ساعة</span><input class="inp" id="ls-access" type="number" min="1" max="8760" value="24" placeholder="24"></div>
       </div>
       <div class="fw" style="margin-bottom:10px"><span class="fl">وصف (اختياري)</span><input class="inp" id="ls-desc" placeholder="..."></div>
       <div class="fw" style="margin-bottom:14px"><span class="fl">صورة الحصة (thumbnail)</span>
@@ -1043,7 +1047,7 @@ async function renderAdminLessons(){
   <div class="panel glass">
     <div class="panel-head"><span class="panel-title">الحصص (${(lessons||[]).length})</span></div>
     <div class="tbl-wrap"><table>
-      <thead><tr><th>الصورة</th><th>الحصة</th><th>الشابتر</th><th>الكود</th><th>الحالة</th><th>الوقت</th><th>إجراءات</th></tr></thead>
+      <thead><tr><th>الصورة</th><th>الحصة</th><th>الشابتر</th><th>الكود</th><th>الحالة</th><th>الوقت</th><th>المدة</th><th>إجراءات</th></tr></thead>
       <tbody>${(lessons||[]).map(l=>`<tr>
         <td>${l.image_url?`<img class="tbl-thumb" src="${imgSafe(l.image_url)}" onerror="imgErr(this,'🎬')" loading="lazy">`:`<div class="tbl-thumb-ph">🎬</div>`}</td>
         <td><strong>${l.title}</strong></td>
@@ -1055,6 +1059,7 @@ async function renderAdminLessons(){
           </button>
         </td>
         <td class="td-mono" style="font-size:.72rem">${l.scheduled_at?new Date(l.scheduled_at).toLocaleString('ar-EG',{dateStyle:'short',timeStyle:'short'}):'—'}</td>
+        <td><span class="chip c-blue">${l.access_hours||24} ساعة</span></td>
         <td>
           <div style="display:flex;gap:5px;flex-wrap:wrap">
             <button class="btn btn-gold btn-xs" onclick="openContent('${l.id}','${l.title}')">📋 محتوى</button>
@@ -1080,6 +1085,7 @@ async function addLesson(){
   const title=document.getElementById('ls-title').value.trim();
   const code=document.getElementById('ls-code').value.trim().toUpperCase();
   const time=document.getElementById('ls-time').value;
+  const accessHours=parseInt(document.getElementById('ls-access')?.value||'24',10)||24;
   const desc=document.getElementById('ls-desc').value.trim();
   const file=document.getElementById('ls-img-file').files[0];
   if(!chId||!title||!code)return toast('w','الشابتر والعنوان والكود مطلوبين');
@@ -1090,7 +1096,7 @@ async function addLesson(){
     try{document.getElementById('ls-img-prog').style.display='block';img_url=await uploadImage(file,'lessons','ls-img-bar');}
     catch(e){toast('w','فشل رفع الصورة: '+(e.message||'راجع Storage policy'));}
   }
-  const{error}=await sb.from('lessons').insert({chapter_id:chId,title,code,scheduled_at:time||null,description:desc||null,is_active:false,image_url:img_url});
+  const{error}=await sb.from('lessons').insert({chapter_id:chId,title,code,scheduled_at:time||null,access_hours:accessHours,description:desc||null,is_active:false,image_url:img_url});
   btn.textContent='إضافة الحصة';btn.disabled=false;
   if(error)return toast('e',error.message.includes('unique')?'الكود ده موجود قبل كده':error.message);
   toast('s',`تم إضافة "${title}"`);renderAdminLessons();
@@ -1243,7 +1249,7 @@ async function renderMyLessons(){
   const{data:myChs}=await sb.from('chapters').select('id,title').eq('teacher_id',ME.id).order('title');
   const myChIds=(myChs||[]).map(c=>c.id);
   let lessons=[];
-  if(myChIds.length){const{data}=await sb.from('lessons').select('id,title,code,is_active,scheduled_at,image_url,chapters(title)').in('chapter_id',myChIds).order('created_at',{ascending:false});lessons=data||[];}
+  if(myChIds.length){const{data}=await sb.from('lessons').select('id,title,code,is_active,scheduled_at,access_hours,image_url,chapters(title)').in('chapter_id',myChIds).order('created_at',{ascending:false});lessons=data||[];}
   const chOpts=(myChs||[]).map(c=>`<option value="${c.id}">${c.title}</option>`).join('');
   setContent(`
   <div class="panel glass">
@@ -1257,7 +1263,7 @@ async function renderMyLessons(){
         </div>
         <div class="fw"><span class="fl">عنوان الحصة</span><input class="inp" id="mls-title" placeholder="درس المشتقات"></div>
       </div>
-      <div class="form-row fr-2">
+      <div class="form-row fr-3">
         <div class="fw"><span class="fl">كود الحصة</span>
           <div style="display:flex;gap:6px">
             <input class="inp" id="mls-code" placeholder="KW-XXXXX" dir="ltr" style="flex:1">
@@ -1265,6 +1271,7 @@ async function renderMyLessons(){
           </div>
         </div>
         <div class="fw"><span class="fl">وقت الحصة</span><input class="inp" id="mls-time" type="datetime-local"></div>
+        <div class="fw"><span class="fl">مدة فتح الحصة بعد الكود / ساعة</span><input class="inp" id="mls-access" type="number" min="1" max="8760" value="24" placeholder="24"></div>
       </div>
       <div class="fw" style="margin-bottom:10px"><span class="fl">وصف</span><input class="inp" id="mls-desc" placeholder="..."></div>
       <div class="fw" style="margin-bottom:14px"><span class="fl">صورة الحصة</span>
@@ -1282,7 +1289,7 @@ async function renderMyLessons(){
   <div class="panel glass">
     <div class="panel-head"><span class="panel-title">حصصي (${lessons.length})</span></div>
     <div class="tbl-wrap"><table>
-      <thead><tr><th>الصورة</th><th>الحصة</th><th>الشابتر</th><th>الكود</th><th>الحالة</th><th>الوقت</th><th>إجراءات</th></tr></thead>
+      <thead><tr><th>الصورة</th><th>الحصة</th><th>الشابتر</th><th>الكود</th><th>الحالة</th><th>الوقت</th><th>المدة</th><th>إجراءات</th></tr></thead>
       <tbody>${lessons.map(l=>`<tr>
         <td>${l.image_url?`<img class="tbl-thumb" src="${imgSafe(l.image_url)}" onerror="imgErr(this,'🎬')" loading="lazy">`:`<div class="tbl-thumb-ph">🎬</div>`}</td>
         <td><strong>${l.title}</strong></td>
@@ -1290,6 +1297,7 @@ async function renderMyLessons(){
         <td><span class="code-chip">${l.code}</span></td>
         <td><button class="chip ${l.is_active?'c-green':'c-red'}" style="border:none;cursor:pointer" onclick="toggleLesson2('${l.id}',${l.is_active})">${l.is_active?'✅ نشط':'⛔ مغلق'}</button></td>
         <td class="td-mono" style="font-size:.72rem">${l.scheduled_at?new Date(l.scheduled_at).toLocaleString('ar-EG',{dateStyle:'short',timeStyle:'short'}):'—'}</td>
+        <td><span class="chip c-blue">${l.access_hours||24} ساعة</span></td>
         <td>
           <div style="display:flex;gap:5px;flex-wrap:wrap">
             <button class="btn btn-gold btn-xs" onclick="openContent('${l.id}','${l.title}')">📋 محتوى</button>
@@ -1312,6 +1320,7 @@ async function addMyLesson(){
   const title=document.getElementById('mls-title').value.trim();
   const code=document.getElementById('mls-code').value.trim().toUpperCase();
   const time=document.getElementById('mls-time').value;
+  const accessHours=parseInt(document.getElementById('mls-access')?.value||'24',10)||24;
   const desc=document.getElementById('mls-desc').value.trim();
   const file=document.getElementById('mls-img-file').files[0];
   if(!chId||!title||!code)return toast('w','الشابتر والعنوان والكود مطلوبين');
@@ -1319,7 +1328,7 @@ async function addMyLesson(){
   btn.innerHTML='<span class="ld"></span>';btn.disabled=true;
   let img_url=null;
   if(file){try{document.getElementById('mls-img-prog').style.display='block';img_url=await uploadImage(file,'lessons','mls-img-bar');}catch(e){toast('w','فشل رفع الصورة: '+(e.message||'راجع Storage policy'));}}
-  const{error}=await sb.from('lessons').insert({chapter_id:chId,title,code,scheduled_at:time||null,description:desc||null,is_active:false,image_url:img_url});
+  const{error}=await sb.from('lessons').insert({chapter_id:chId,title,code,scheduled_at:time||null,access_hours:accessHours,description:desc||null,is_active:false,image_url:img_url});
   btn.textContent='إضافة الحصة';btn.disabled=false;
   if(error)return toast('e',error.message.includes('unique')?'الكود ده موجود':error.message);
   toast('s',`تم إضافة "${title}"`);renderMyLessons();
@@ -1389,11 +1398,12 @@ async function delVideoPart(id){
 // EXAM BUILDER
 async function loadExamBuilder(){
   // check if exam exists for this lesson
-  const{data:ex}=await sb.from('exams').select('id,title,duration_minutes,scheduled_at').eq('lesson_id',_activeLessonId).maybeSingle();
+  const{data:ex}=await sb.from('exams').select('id,title,duration_minutes,scheduled_at,pass_score').eq('lesson_id',_activeLessonId).maybeSingle();
   if(ex){
     _examId=ex.id;
     document.getElementById('ex-title').value=ex.title||'';
     document.getElementById('ex-dur').value=ex.duration_minutes||'';
+    document.getElementById('ex-pass').value=ex.pass_score ?? 50;
     if(ex.scheduled_at)document.getElementById('ex-time').value=ex.scheduled_at.slice(0,16);
   }
   loadQuestions();
@@ -1478,7 +1488,8 @@ async function addQuestion(){
     const title=document.getElementById('ex-title').value.trim()||_activeLessonTitle;
     const dur=document.getElementById('ex-dur').value;
     const time=document.getElementById('ex-time').value;
-    const{data:ex,error}=await sb.from('exams').insert({lesson_id:_activeLessonId,title,duration_minutes:dur?parseInt(dur):null,scheduled_at:time||null}).select().single();
+    const pass=parseInt(document.getElementById('ex-pass')?.value||'50',10);
+    const{data:ex,error}=await sb.from('exams').insert({lesson_id:_activeLessonId,title,duration_minutes:dur?parseInt(dur):null,scheduled_at:time||null,pass_score:isNaN(pass)?50:pass}).select().single();
     if(error){toast('e',error.message);btn.textContent='حفظ السؤال';btn.disabled=false;return;}
     _examId=ex.id;
   } else {
@@ -1486,7 +1497,8 @@ async function addQuestion(){
     const title=document.getElementById('ex-title').value.trim();
     const dur=document.getElementById('ex-dur').value;
     const time=document.getElementById('ex-time').value;
-    if(title)await sb.from('exams').update({title,duration_minutes:dur?parseInt(dur):null,scheduled_at:time||null}).eq('id',_examId);
+    const pass=parseInt(document.getElementById('ex-pass')?.value||'50',10);
+    if(title)await sb.from('exams').update({title,duration_minutes:dur?parseInt(dur):null,scheduled_at:time||null,pass_score:isNaN(pass)?50:pass}).eq('id',_examId);
   }
 
   // upload question image if exists
