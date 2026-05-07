@@ -533,6 +533,27 @@ function initDash(user,profile){
   buildNav();goTo('dashboard');
 }
 
+
+function normalizePhoneForWhatsApp(phone){
+  let p=String(phone||'').replace(/[^0-9]/g,'');
+  if(!p)return '';
+  if(p.startsWith('0'))p='20'+p.slice(1);
+  if(!p.startsWith('20')&&p.length===10)p='20'+p;
+  return p;
+}
+async function sendGradeToParent(subId,parentPhone,studentName,lessonTitle,score,passed){
+  const num=normalizePhoneForWhatsApp(parentPhone);
+  if(!num)return toast('w','رقم ولي الأمر غير صحيح');
+  const status=passed?'ناجح ✅':'محتاج يحاول تاني ⚠️';
+  const msg=encodeURIComponent(`منصة kalawy\nنتيجة الطالب: ${studentName}\nالحصة: ${lessonTitle}\nالدرجة: ${score}%\nالحالة: ${status}`);
+  if(subId){
+    await sb.from('exam_submissions').update({parent_sent_at:new Date().toISOString()}).eq('id',subId);
+  }
+  window.open(`https://wa.me/${num}?text=${msg}`,'_blank');
+  toast('s','تم فتح واتساب برسالة الدرجة');
+  if(curPage==='students')setTimeout(()=>renderStudents(),700);
+}
+
 // ── Nav ─────────────────────────────────────────────────────────────────────
 const adminPages={
   dashboard:{ico:'📊',lbl:'Dashboard',sub:'نظرة عامة'},
@@ -546,6 +567,7 @@ const teacherPages={
   dashboard:{ico:'📊',lbl:'Dashboard',sub:'نظرة عامة'},
   mychapters:{ico:'📖',lbl:'شابتراتي',sub:'شابتراتي'},
   mylessons:{ico:'🎬',lbl:'حصصي',sub:'إدارة الحصص والمحتوى'},
+  students:{ico:'🎓',lbl:'طلابي',sub:'بيانات الطلاب والامتحانات'},
 };
 
 function buildNav(){
@@ -1114,20 +1136,91 @@ async function delLesson(id,title){
 // ── STUDENTS ────────────────────────────────────────────────────────────────
 async function renderStudents(){
   setContent('<div class="loading"><div class="ld"></div></div>');
-  const{data,count}=await sb.from('students').select('id,grade_id,created_at,profiles(full_name,phone,email)',{count:'exact'}).order('created_at',{ascending:false});
+
+  let lessons=[];
+  if(ROLE==='teacher'){
+    const {data:chs}=await sb.from('chapters').select('id').eq('teacher_id',ME.id);
+    const chIds=(chs||[]).map(c=>c.id);
+    if(chIds.length){
+      const {data:ls}=await sb.from('lessons').select('id,title,chapter_id,chapters(title,subjects(name_ar))').in('chapter_id',chIds).order('created_at',{ascending:false});
+      lessons=ls||[];
+    }
+  }else{
+    const {data:ls}=await sb.from('lessons').select('id,title,chapter_id,chapters(title,subjects(name_ar))').order('created_at',{ascending:false});
+    lessons=ls||[];
+  }
+
+  const lessonIds=lessons.map(l=>l.id);
+  const lessonMap=Object.fromEntries(lessons.map(l=>[l.id,l]));
+  if(!lessonIds.length){
+    setContent('<div class="panel glass"><div class="empty-state"><div class="empty-ico">🎓</div><div>لا توجد حصص مرتبطة بحسابك لعرض الطلاب</div></div></div>');
+    return;
+  }
+
+  const [{data:codes,error:codesErr},{data:exams,error:examsErr}]=await Promise.all([
+    sb.from('lesson_codes')
+      .select('id,code,lesson_id,used_by,used_at,expires_at,students(id,grade_id,profiles(full_name,phone,parent_phone,email))')
+      .in('lesson_id',lessonIds)
+      .not('used_by','is',null)
+      .order('used_at',{ascending:false}),
+    sb.from('exams').select('id,lesson_id,title,pass_score').in('lesson_id',lessonIds)
+  ]);
+
+  if(codesErr){setContent(`<div class="panel glass"><div class="empty-state"><div class="empty-ico">⚠️</div><div>${codesErr.message}</div></div></div>`);return;}
+  if(examsErr){setContent(`<div class="panel glass"><div class="empty-state"><div class="empty-ico">⚠️</div><div>${examsErr.message}</div></div></div>`);return;}
+
+  const examIds=(exams||[]).map(e=>e.id);
+  let subs=[];
+  if(examIds.length){
+    const {data:s,error:sErr}=await sb.from('exam_submissions')
+      .select('id,exam_id,student_id,score,passed,attempt_count,updated_at,parent_sent_at')
+      .in('exam_id',examIds);
+    if(sErr){setContent(`<div class="panel glass"><div class="empty-state"><div class="empty-ico">⚠️</div><div>${sErr.message}</div></div></div>`);return;}
+    subs=s||[];
+  }
+  const examByLesson={}; (exams||[]).forEach(e=>{examByLesson[e.lesson_id]=e;});
+  const subByKey={}; (subs||[]).forEach(s=>{subByKey[`${s.exam_id}:${s.student_id}`]=s;});
+
+  const rows=(codes||[]).map(cd=>{
+    const st=cd.students||{};
+    const pr=st.profiles||{};
+    const lesson=lessonMap[cd.lesson_id]||{};
+    const exam=examByLesson[cd.lesson_id];
+    const sub=exam?subByKey[`${exam.id}:${cd.used_by}`]:null;
+    const parent=pr.parent_phone||'';
+    const studentName=pr.full_name||'—';
+    const lessonTitle=lesson.title||'—';
+    const chapterTitle=lesson.chapters?.title||'';
+    const subjectName=lesson.chapters?.subjects?.name_ar||'';
+    const examState=!exam?'<span class="chip c-gray">لا يوجد امتحان</span>':(!sub?'<span class="chip c-gold">لم يمتحن</span>':`<span class="chip ${sub.passed?'c-green':'c-red'}">${sub.passed?'ناجح':'راسب'} ${sub.score}%</span><div class="td-mono">محاولات: ${sub.attempt_count||1}</div>`);
+    const whatsappBtn=(sub&&parent)?`<button class="btn btn-primary btn-xs" onclick='sendGradeToParent(${JSON.stringify(sub.id)},${JSON.stringify(parent)},${JSON.stringify(studentName)},${JSON.stringify(lessonTitle)},${JSON.stringify(sub.score)},${JSON.stringify(!!sub.passed)})'>📲 إرسال لولي الأمر</button>${sub.parent_sent_at?`<div><span class="chip c-green" style="margin-top:5px">تم إرسال</span></div>`:''}`:`<span class="chip c-gray">${!parent?'لا يوجد رقم ولي أمر':'لا توجد درجة'}</span>`;
+    const left=cd.expires_at?Math.max(0,new Date(cd.expires_at).getTime()-Date.now()):null;
+    const leftTxt=left===null?'—':(left<=0?'انتهى':`${Math.floor(left/3600000)}س ${Math.floor((left%3600000)/60000)}د`);
+    return `<tr>
+      <td><strong>${studentName}</strong><div class="td-mono" style="direction:ltr">${pr.email||''}</div></td>
+      <td><div class="td-mono">طالب: ${pr.phone||'—'}</div><div class="td-mono">ولي أمر: ${parent||'—'}</div></td>
+      <td><strong>${lessonTitle}</strong><div style="font-size:.75rem;color:var(--text3)">${subjectName} ${chapterTitle?`← ${chapterTitle}`:''}</div></td>
+      <td><span class="code-chip">${cd.code}</span><div class="td-mono">${cd.used_at?new Date(cd.used_at).toLocaleString('ar-EG',{dateStyle:'short',timeStyle:'short'}):'—'}</div><span class="chip ${left===0?'c-red':'c-blue'}">متبقي: ${leftTxt}</span></td>
+      <td>${examState}</td>
+      <td>${whatsappBtn}</td>
+    </tr>`;
+  }).join('');
+
+  const uniqueStudents=new Set((codes||[]).map(c=>c.used_by)).size;
+  const done=subs.length;
+  const passed=subs.filter(s=>s.passed).length;
+
   setContent(`
+  <div class="stats-grid" style="grid-template-columns:repeat(3,1fr)">
+    <div class="stat-card glass"><div class="stat-ico">🎓</div><div class="stat-num">${uniqueStudents}</div><div class="stat-lbl">طلاب دخلوا أكواد</div></div>
+    <div class="stat-card glass"><div class="stat-ico">📝</div><div class="stat-num">${done}</div><div class="stat-lbl">امتحانات متسلمة</div></div>
+    <div class="stat-card glass"><div class="stat-ico">✅</div><div class="stat-num">${passed}</div><div class="stat-lbl">ناجحين</div></div>
+  </div>
   <div class="panel glass">
-    <div class="panel-head"><span class="panel-title">الطلاب</span><span class="chip c-green">${count??0}</span></div>
+    <div class="panel-head"><span class="panel-title">${ROLE==='teacher'?'طلابي ودرجاتهم':'كل الطلاب ودرجاتهم'}</span><span class="chip c-green">${uniqueStudents}</span></div>
     <div class="tbl-wrap"><table>
-      <thead><tr><th>الاسم</th><th>البريد</th><th>الصف</th><th>الموبايل</th><th>التسجيل</th></tr></thead>
-      <tbody>${(data||[]).map(s=>`<tr>
-        <td><strong>${s.profiles?.full_name||'—'}</strong></td>
-        <td class="td-mono" style="direction:ltr;font-size:.76rem">${s.profiles?.email||'—'}</td>
-        <td><span class="chip c-green">${GRADES[s.grade_id]||s.grade_id}</span></td>
-        <td class="td-mono">${s.profiles?.phone||'—'}</td>
-        <td class="td-mono">${new Date(s.created_at).toLocaleDateString('ar-EG')}</td>
-      </tr>`).join('')||'<tr><td colspan="5"><div class="empty-state"><div class="empty-ico">🎓</div><div>لا يوجد طلاب</div></div></td></tr>'}
-      </tbody>
+      <thead><tr><th>الطالب</th><th>الأرقام</th><th>الحصة</th><th>الكود والوقت</th><th>الامتحان</th><th>ولي الأمر</th></tr></thead>
+      <tbody>${rows||'<tr><td colspan="6"><div class="empty-state"><div class="empty-ico">🎓</div><div>لا يوجد طلاب دخلوا أكواد حتى الآن</div></div></td></tr>'}</tbody>
     </table></div>
   </div>`);
 }
