@@ -562,12 +562,14 @@ const adminPages={
   chapters:{ico:'📖',lbl:'الشابترات',sub:'إضافة وإدارة الشابترات'},
   lessons:{ico:'🎬',lbl:'الحصص',sub:'إدارة الحصص والمحتوى'},
   students:{ico:'🎓',lbl:'الطلاب',sub:'عرض الطلاب'},
+  notifications:{ico:'🔔',lbl:'الإشعارات',sub:'إرسال إشعارات للطلاب المتابعين'},
 };
 const teacherPages={
   dashboard:{ico:'📊',lbl:'Dashboard',sub:'نظرة عامة'},
   mychapters:{ico:'📖',lbl:'شابتراتي',sub:'شابتراتي'},
   mylessons:{ico:'🎬',lbl:'حصصي',sub:'إدارة الحصص والمحتوى'},
   students:{ico:'🎓',lbl:'طلابي',sub:'بيانات الطلاب والامتحانات'},
+  notifications:{ico:'🔔',lbl:'الإشعارات',sub:'اكتب منشور للطلاب المتابعين'},
 };
 
 function buildNav(){
@@ -604,6 +606,7 @@ async function renderPage(page){
   if(page==='chapters')  return renderAdminChapters();
   if(page==='lessons')   return renderAdminLessons();
   if(page==='students')  return renderStudents();
+  if(page==='notifications') return renderNotificationsPage();
   if(page==='mychapters') return renderMyChapters();
   if(page==='mylessons') return renderMyLessons();
 }
@@ -1223,6 +1226,61 @@ async function renderStudents(){
       <tbody>${rows||'<tr><td colspan="6"><div class="empty-state"><div class="empty-ico">🎓</div><div>لا يوجد طلاب دخلوا أكواد حتى الآن</div></div></td></tr>'}</tbody>
     </table></div>
   </div>`);
+}
+
+
+
+// ── NOTIFICATIONS / POSTS ───────────────────────────────────────────────────
+async function renderNotificationsPage(){
+  setContent('<div class="loading"><div class="ld"></div></div>');
+  let teacherSelect='';
+  if(ROLE==='admin'){
+    const {data:tchs}=await sb.from('profiles').select('id,full_name,email').eq('role','teacher').order('full_name');
+    teacherSelect=`<div class="fw"><span class="fl">مين يستقبل الإشعار؟</span><select class="inp hv" id="not-teacher">
+      <option value="">كل الطلاب</option>
+      ${(tchs||[]).map(t=>`<option value="${t.id}">${t.full_name||t.email||t.id}</option>`).join('')}
+    </select></div>`;
+  }else{
+    teacherSelect=`<input type="hidden" id="not-teacher" value="${ME.id}"><div class="chip c-green">هيتوصل للطلاب اللي عاملين لك Follow فقط</div>`;
+  }
+  const {data:recent}=await sb.from('notifications')
+    .select('id,title,body,type,created_at,teacher_id,teacher:teacher_id(full_name)')
+    .order('created_at',{ascending:false}).limit(30);
+  setContent(`
+  <div class="panel glass">
+    <div class="panel-head"><span class="panel-title">🔔 إرسال إشعار / منشور</span></div>
+    <div class="panel-body">
+      <div class="form-row fr-2">
+        ${teacherSelect}
+        <div class="fw"><span class="fl">نوع الإشعار</span><select class="inp hv" id="not-type">
+          <option value="post">منشور</option><option value="lesson">حصة</option><option value="exam">امتحان</option><option value="homework">واجب</option><option value="pdf">PDF</option><option value="video">فيديو</option>
+        </select></div>
+      </div>
+      <div class="fw" style="margin-bottom:10px"><span class="fl">العنوان</span><input class="inp" id="not-title" placeholder="مثال: تنبيه مهم"></div>
+      <div class="fw" style="margin-bottom:14px"><span class="fl">الرسالة</span><textarea class="inp" id="not-body" rows="4" placeholder="اكتب الرسالة اللي هتوصل للطلاب..."></textarea></div>
+      <button class="btn btn-primary" id="not-btn" onclick="sendManualNotification()">إرسال الإشعار</button>
+    </div>
+  </div>
+  <div class="panel glass">
+    <div class="panel-head"><span class="panel-title">آخر الإشعارات</span></div>
+    <div class="tbl-wrap"><table><thead><tr><th>النوع</th><th>العنوان</th><th>المستهدف</th><th>التاريخ</th></tr></thead><tbody>
+      ${(recent||[]).map(n=>`<tr><td><span class="chip c-blue">${n.type}</span></td><td><strong>${n.title}</strong><div style="font-size:.75rem;color:var(--text3);white-space:pre-wrap">${n.body||''}</div></td><td>${n.teacher?.full_name||'كل الطلاب'}</td><td class="td-mono">${new Date(n.created_at).toLocaleString('ar-EG',{dateStyle:'short',timeStyle:'short'})}</td></tr>`).join('')||'<tr><td colspan="4"><div class="empty-state"><div class="empty-ico">🔔</div><div>لا توجد إشعارات</div></div></td></tr>'}
+    </tbody></table></div>
+  </div>`);
+}
+async function sendManualNotification(){
+  const teacherId=document.getElementById('not-teacher')?.value || null;
+  const type=document.getElementById('not-type')?.value || 'post';
+  const title=document.getElementById('not-title')?.value.trim();
+  const body=document.getElementById('not-body')?.value.trim();
+  if(!title) return toast('w','اكتب عنوان الإشعار');
+  const btn=document.getElementById('not-btn');
+  btn.innerHTML='<span class="ld"></span>';btn.disabled=true;
+  const {error}=await sb.from('notifications').insert({sender_id:ME.id,teacher_id:teacherId||null,type,title,body:body||null});
+  btn.textContent='إرسال الإشعار';btn.disabled=false;
+  if(error) return toast('e',error.message);
+  toast('s','تم إرسال الإشعار للطلاب المتابعين');
+  renderNotificationsPage();
 }
 
 // ── TEACHER PAGES ────────────────────────────────────────────────────────────
